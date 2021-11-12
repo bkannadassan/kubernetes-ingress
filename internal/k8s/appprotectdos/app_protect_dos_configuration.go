@@ -90,7 +90,7 @@ type Problem struct {
 type Configuration interface {
 	AddOrUpdatePolicy(policyObj *unstructured.Unstructured) (changes []Change, problems []Problem)
 	AddOrUpdateLogConf(logConfObj *unstructured.Unstructured) (changes []Change, problems []Problem)
-	AddOrUpdateProtectedResource(logConfObj *unstructured.Unstructured) (changes []Change, problems []Problem)
+	AddOrUpdateProtectedResource(protectedObj *unstructured.Unstructured) (changes []Change, problems []Problem)
 	GetAppResource(kind, key string) (*unstructured.Unstructured, error)
 	DeletePolicy(key string) (changes []Change, problems []Problem)
 	DeleteLogConf(key string) (changes []Change, problems []Problem)
@@ -319,10 +319,10 @@ func (fc *FakeConfiguration) AddOrUpdateLogConf(logConfObj *unstructured.Unstruc
 }
 
 // AddOrUpdateProtectedResource adds or updates App Protect Dos Log Configuration to App Protect Dos Configuration
-func (fc *FakeConfiguration) AddOrUpdateProtectedResource(logConfObj *unstructured.Unstructured) (changes []Change, problems []Problem) {
-	resNsName := appprotect_common.GetNsName(logConfObj)
+func (fc *FakeConfiguration) AddOrUpdateProtectedResource(protectedObj *unstructured.Unstructured) (changes []Change, problems []Problem) {
+	resNsName := appprotect_common.GetNsName(protectedObj)
 	res := &DosProtectedResourcesEx{
-		Obj:     logConfObj,
+		Obj:     protectedObj,
 		IsValid: true,
 	}
 	fc.dosProtectedResources[resNsName] = res

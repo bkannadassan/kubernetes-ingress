@@ -265,7 +265,9 @@ func (cnf *Configurator) AddOrUpdateIngress(ingEx *IngressEx) (Warnings, error) 
 
 func (cnf *Configurator) addOrUpdateIngress(ingEx *IngressEx) (Warnings, error) {
 	apResources := cnf.updateApResources(ingEx)
-	dosResources := cnf.updateApDosResources(ingEx.DosResourceEx)
+
+	cnf.updateApDosResources(ingEx.DosResourceEx) // todo move this
+	dosResources := getAppProtectDosResources(ingEx.DosResourceEx)
 
 	if jwtKey, exists := ingEx.Ingress.Annotations[JWTKeyAnnotation]; exists {
 		// LocalSecretStore will not set Path if the secret is not on the filesystem.
@@ -307,7 +309,8 @@ func (cnf *Configurator) AddOrUpdateMergeableIngress(mergeableIngs *MergeableIng
 
 func (cnf *Configurator) addOrUpdateMergeableIngress(mergeableIngs *MergeableIngresses) (Warnings, error) {
 	apResources := cnf.updateApResources(mergeableIngs.Master)
-	dosResources := cnf.updateApDosResources(mergeableIngs.Master.DosResourceEx)
+	cnf.updateApDosResources(mergeableIngs.Master.DosResourceEx)
+	dosResources := getAppProtectDosResources(mergeableIngs.Master.DosResourceEx)
 
 	// LocalSecretStore will not set Path if the secret is not on the filesystem.
 	// However, NGINX configuration for an Ingress resource, to handle the case of a missing secret,
@@ -446,7 +449,8 @@ func (cnf *Configurator) addOrUpdateVirtualServer(virtualServerEx *VirtualServer
 	apResources := cnf.updateApResourcesForVs(virtualServerEx)
 	dosResources := map[string]*appProtectDosResources{}
 	for k, v := range virtualServerEx.DosProtectedEx {
-		dosResources[k] = cnf.updateApDosResources(v)
+		cnf.updateApDosResources(v)
+		dosResources[k] = getAppProtectDosResources(v)
 	}
 
 	name := getFileNameForVirtualServer(virtualServerEx.VirtualServer)
@@ -1293,10 +1297,10 @@ func (cnf *Configurator) updateApResources(ingEx *IngressEx) *appProtectResource
 func getDosProtectedStringValue(obj *unstructured.Unstructured, fields ...string) string {
 	val, has, err := unstructured.NestedString(obj.Object, fields...)
 	if err != nil {
-		glog.Warningf("failed to get value from DosProtectedResources: %v, %v", fields, err)
+		glog.Warningf("Failed to get value from DosProtectedResources: %v, %v", fields, err)
 	}
 	if !has {
-		glog.Warningf("missing value from DosProtectedResources: %v, %v", fields, err)
+		glog.Warningf("Missing value from DosProtectedResources: %v, %v", fields, err)
 	}
 	return val
 }
@@ -1304,48 +1308,27 @@ func getDosProtectedStringValue(obj *unstructured.Unstructured, fields ...string
 func getDosProtectedBoolValue(obj *unstructured.Unstructured, fields ...string) bool {
 	val, has, err := unstructured.NestedBool(obj.Object, fields...)
 	if err != nil {
-		glog.Warningf("failed to get value from DosProtectedResources: %v, %v", fields, err)
+		glog.Warningf("Failed to get value from DosProtectedResources: %v, %v", fields, err)
 	}
 	if !has {
-		glog.Warningf("missing value from DosProtectedResources: %v, %v", fields, err)
+		glog.Warningf("Missing value from DosProtectedResources: %v, %v", fields, err)
 	}
 	return val
 }
 
-func (cnf *Configurator) updateApDosResources(dosEx *DosProtectedEx) *appProtectDosResources {
-	var dosResources appProtectDosResources
+func (cnf *Configurator) updateApDosResources(dosEx *DosProtectedEx) {
 	if dosEx != nil {
-		if dosEx.DosProtected != nil {
-			protected := dosEx.DosProtected
-			dosResources.AppProtectDosEnable = "off"
-			if getDosProtectedBoolValue(protected, "spec", "enable") {
-				dosResources.AppProtectDosEnable = "on"
-			}
-			dosResources.AppProtectDosName = getDosProtectedStringValue(protected, "spec", "name")
-			dosResources.AppProtectDosMonitor = getDosProtectedStringValue(protected, "spec", "apDosMonitor")
-			dosResources.AppProtectDosAccessLogDst = getDosProtectedStringValue(protected, "spec", "dosAccessLogDest")
-
-			if dosEx.DosPolicy != nil {
-				pol := dosEx.DosPolicy
-				policyFileName := appProtectDosPolicyFileNameFromUnstruct(pol)
-				policyContent := generateApResourceFileContent(pol)
-				cnf.nginxManager.CreateAppProtectResourceFile(policyFileName, policyContent)
-				dosResources.AppProtectDosPolicyFile = policyFileName
-			}
-
-			if dosEx.DosLogConf != nil {
-				log := dosEx.DosLogConf
-				logConfFileName := appProtectDosLogConfFileNameFromUnstruct(log)
-				logConfContent := generateApResourceFileContent(log)
-				cnf.nginxManager.CreateAppProtectResourceFile(logConfFileName, logConfContent)
-				logDest := getDosProtectedStringValue(protected, "spec", "dosSecurityLog", "dosLogDest")
-				dosResources.AppProtectDosLogConfFile = logConfFileName + " " + generateDosLogDest(logDest)
-				dosResources.AppProtectDosLogEnable = getDosProtectedBoolValue(protected, "spec", "dosSecurityLog", "enable")
-			}
+		if dosEx.DosPolicy != nil {
+			policyFileName := appProtectDosPolicyFileNameFromUnstruct(dosEx.DosPolicy)
+			policyContent := generateApResourceFileContent(dosEx.DosPolicy)
+			cnf.nginxManager.CreateAppProtectResourceFile(policyFileName, policyContent)
+		}
+		if dosEx.DosLogConf != nil {
+			logConfFileName := appProtectDosLogConfFileNameFromUnstruct(dosEx.DosLogConf)
+			logConfContent := generateApResourceFileContent(dosEx.DosLogConf)
+			cnf.nginxManager.CreateAppProtectResourceFile(logConfFileName, logConfContent)
 		}
 	}
-
-	return &dosResources
 }
 
 func (cnf *Configurator) updateApResourcesForVs(vsEx *VirtualServerEx) *appProtectResourcesForVS {
@@ -1394,6 +1377,7 @@ func generateApResourceFileContent(apResource *unstructured.Unstructured) []byte
 	return data
 }
 
+// ResourceOperation represents a function that changes configuration in relation to an unstructured resource.
 type ResourceOperation func(resource *unstructured.Unstructured, ingExes []*IngressEx, mergeableIngresses []*MergeableIngresses, vsExes []*VirtualServerEx) (Warnings, error)
 
 // AddOrUpdateAppProtectResource updates Ingresses and VirtualServers that use App Protect or App Protect DoS resources.

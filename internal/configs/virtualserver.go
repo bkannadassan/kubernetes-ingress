@@ -299,11 +299,7 @@ func (vsc *virtualServerConfigurator) GenerateVirtualServerConfig(
 		vsName:         vsEx.VirtualServer.Name,
 	}
 	policiesCfg := vsc.generatePolicies(ownerDetails, vsEx.VirtualServer.Spec.Policies, vsEx.Policies, specContext, policyOpts)
-	vsDosCfg := dosResources[""]
-	var dosCfg *version2.Dos
-	if vsDosCfg != nil {
-		dosCfg = vsc.generateDosCfg(vsDosCfg)
-	}
+	dosCfg := generateDosCfg(dosResources[""])
 
 	// crUpstreams maps an UpstreamName to its conf_v1.Upstream as they are generated
 	// necessary for generateLocation to know what Upstream each Location references
@@ -427,7 +423,7 @@ func (vsc *virtualServerConfigurator) GenerateVirtualServerConfig(
 		}
 		limitReqZones = append(limitReqZones, routePoliciesCfg.LimitReqZones...)
 
-		dosRouteCfg := vsc.generateDosCfg(dosResources[r.Path])
+		dosRouteCfg := generateDosCfg(dosResources[r.Path])
 
 		if len(r.Matches) > 0 {
 			cfg := generateMatchesConfig(
@@ -1016,21 +1012,6 @@ func (p *policiesCfg) addWAFConfig(
 	}
 
 	return res
-}
-
-func (vsc *virtualServerConfigurator) generateDosCfg(dosResources *appProtectDosResources) *version2.Dos {
-	if dosResources == nil {
-		return nil
-	}
-	dos := &version2.Dos{}
-	dos.Enable = dosResources.AppProtectDosEnable
-	dos.Name = dosResources.AppProtectDosName
-	dos.ApDosMonitor = dosResources.AppProtectDosMonitor
-	dos.ApDosAccessLogDest = dosResources.AppProtectDosAccessLogDst
-	dos.ApDosPolicy = dosResources.AppProtectDosPolicyFile
-	dos.ApDosSecurityLogEnable = dosResources.AppProtectDosLogEnable
-	dos.ApDosLogConf = dosResources.AppProtectDosLogConfFile
-	return dos
 }
 
 func (vsc *virtualServerConfigurator) generatePolicies(

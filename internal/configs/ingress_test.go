@@ -1417,7 +1417,7 @@ func TestGenerateNginxCfgForMergeableIngressesForAppProtect(t *testing.T) {
 
 func TestGenerateNginxCfgForAppProtectDos(t *testing.T) {
 	cafeIngressEx := createCafeIngressEx()
-	cafeIngressEx.Ingress.Annotations["appprotectdos.f5.com/app-protect-dos-resource"] = "dos-policy"
+	cafeIngressEx.Ingress.Annotations["appprotectdos.f5.com/app-protect-dos-resources"] = "dos-policy"
 
 	isPlus := true
 	configParams := NewDefaultConfigParams(isPlus)

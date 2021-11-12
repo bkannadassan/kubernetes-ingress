@@ -1315,13 +1315,16 @@ func (lbc *LoadBalancerController) processAppProtectDosChanges(changes []appprot
 			case *appprotectdos.DosPolicyEx:
 				var protectedResources = lbc.getReferencedDosProtectedResources(impl.Obj.GetName(), impl.Obj.GetNamespace(), "apDosPolicy")
 				lbc.processAppProtectDosProtectedResources(lbc.configurator.DeleteAppProtectDosPolicy, protectedResources...)
+				lbc.processAppProtectDosProtectedResources(lbc.configurator.AddOrUpdateAppProtectResource, protectedResources...)
 
 			case *appprotectdos.DosLogConfEx:
 				var protectedResources = lbc.getReferencedDosProtectedResources(impl.Obj.GetName(), impl.Obj.GetNamespace(), "dosSecurityLog", "apDosLogConf")
-				lbc.processAppProtectDosProtectedResources(lbc.configurator.DeleteAppProtectDosPolicy, protectedResources...)
+				lbc.processAppProtectDosProtectedResources(lbc.configurator.DeleteAppProtectDosLogConf, protectedResources...)
+				lbc.processAppProtectDosProtectedResources(lbc.configurator.AddOrUpdateAppProtectResource, protectedResources...)
 
 			case *appprotectdos.DosProtectedResourcesEx:
-				lbc.processAppProtectDosProtectedResources(lbc.configurator.DeleteAppProtectDosPolicy, impl.Obj)
+				var protectedResources = lbc.getReferencedDosProtectedResources(impl.Obj.GetName(), impl.Obj.GetNamespace(), "apDosPolicy")
+				lbc.processAppProtectDosProtectedResources(lbc.configurator.AddOrUpdateAppProtectResource, protectedResources...)
 			}
 		}
 	}
@@ -1333,7 +1336,7 @@ func (lbc *LoadBalancerController) getReferencedDosProtectedResources(name strin
 		protected := protectedObj.(*unstructured.Unstructured)
 		dosPol, has, err := unstructured.NestedString(protected.Object, path...)
 		if err != nil {
-			glog.Warningf("failed to get dos protected resource policy: %v", err)
+			glog.Warningf("Failed to get dos resource reference: %v", err)
 		}
 		if has && dosPol == (namespace+"/"+name) {
 			protectedResources = append(protectedResources, protected)
@@ -1352,7 +1355,6 @@ func (lbc *LoadBalancerController) processAppProtectDosProtectedResources(f conf
 		resourceExes := lbc.createExtendedResources(resources)
 		warnings, updateErr := f(obj, resourceExes.IngressExes, resourceExes.MergeableIngresses, resourceExes.VirtualServerExes)
 		lbc.updateResourcesStatusAndEvents(resources, warnings, updateErr)
-		lbc.recorder.Eventf(obj, api_v1.EventTypeNormal, "AddedOrUpdated", "AppProtectDosProtectedResources %v was added or updated", namespace+"/"+name)
 	}
 }
 
@@ -2175,7 +2177,6 @@ func (lbc *LoadBalancerController) createMergeableIngresses(ingConfig *IngressCo
 
 // generateDosProtectedEx generates a rich type of from a namespace/name reference.
 func (lbc *LoadBalancerController) generateDosProtectedEx(parentNamespace string, ref string) (*configs.DosProtectedEx, error) {
-
 	if ref == "" {
 		return nil, nil
 	}
@@ -2288,9 +2289,7 @@ func (lbc *LoadBalancerController) createIngressEx(ing *networking.Ingress, vali
 				if err != nil {
 					glog.Warningf("Error Getting Dos Protected Resource %v for Ingress %v/%v: %v", dosProtectedAnnotationValue, ing.Namespace, ing.Name, err)
 				}
-				if dosResEx != nil {
-					ingEx.DosResourceEx = dosResEx
-				}
+				ingEx.DosResourceEx = dosResEx
 			}
 		}
 	}
