@@ -7,7 +7,7 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
-func TestUpdateApDosResources(t *testing.T) {
+func TestUpdateApDosResource(t *testing.T) {
 	appProtectDosPolicy := &unstructured.Unstructured{
 		Object: map[string]interface{}{
 			"metadata": map[string]interface{}{
@@ -65,19 +65,19 @@ func TestUpdateApDosResources(t *testing.T) {
 
 	tests := []struct {
 		dosProtectedEx *DosProtectedEx
-		expected       *appProtectDosResources
+		expected       *appProtectDosResource
 		msg            string
 	}{
 		{
 			dosProtectedEx: &DosProtectedEx{},
-			expected:       &appProtectDosResources{},
+			expected:       &appProtectDosResource{},
 			msg:            "no app protect dos resources",
 		},
 		{
 			dosProtectedEx: &DosProtectedEx{
 				DosProtected: appProtectDosProtected,
 			},
-			expected: &appProtectDosResources{
+			expected: &appProtectDosResource{
 				AppProtectDosEnable:       "on",
 				AppProtectDosName:         "dos.example.com",
 				AppProtectDosMonitor:      "monitor-name",
@@ -90,7 +90,7 @@ func TestUpdateApDosResources(t *testing.T) {
 				DosProtected: appProtectDosProtected,
 				DosPolicy:    appProtectDosPolicy,
 			},
-			expected: &appProtectDosResources{
+			expected: &appProtectDosResource{
 				AppProtectDosEnable:       "on",
 				AppProtectDosName:         "dos.example.com",
 				AppProtectDosMonitor:      "monitor-name",
@@ -105,7 +105,7 @@ func TestUpdateApDosResources(t *testing.T) {
 				DosPolicy:    appProtectDosPolicy,
 				DosLogConf:   appProtectDosLogConf,
 			},
-			expected: &appProtectDosResources{
+			expected: &appProtectDosResource{
 				AppProtectDosEnable:       "on",
 				AppProtectDosName:         "dos.example.com",
 				AppProtectDosMonitor:      "monitor-name",
@@ -119,7 +119,7 @@ func TestUpdateApDosResources(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		result := getAppProtectDosResources(test.dosProtectedEx)
+		result := getAppProtectDosResource(test.dosProtectedEx)
 		if !reflect.DeepEqual(result, test.expected) {
 			t.Errorf("updateApResources() returned \n%v but expected\n%v for the case of %s", result, test.expected, test.msg)
 		}

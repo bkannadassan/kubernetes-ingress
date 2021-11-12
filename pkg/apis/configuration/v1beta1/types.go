@@ -7,15 +7,15 @@ import metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 // +kubebuilder:validation:Optional
 // +kubebuilder:resource:shortName=pr
 
-// DosProtectedResources defines a collection of Dos protected resources.
-type DosProtectedResources struct {
+// DosProtectedResource defines a collection of Dos protected resources.
+type DosProtectedResource struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec DosProtectedResourcesSpec `json:"spec"`
+	Spec DosProtectedResourceSpec `json:"spec"`
 }
 
-type DosProtectedResourcesSpec struct {
+type DosProtectedResourceSpec struct {
 	// Enable enables the DOS feature if set to true
 	Enable bool `json:"enable"`
 	// Name is the name of protected object, max of 63 characters.
@@ -29,7 +29,7 @@ type DosProtectedResourcesSpec struct {
 	DosSecurityLog *DosSecurityLog `json:"dosSecurityLog"`
 }
 
-// DosSecurityLog defines the security log of the DosProtectedResources.
+// DosSecurityLog defines the security log of the DosProtectedResource.
 type DosSecurityLog struct {
 	// Enable enables the security logging feature if set to true
 	Enable bool `json:"enable"`
@@ -41,10 +41,10 @@ type DosSecurityLog struct {
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
-// DosProtectedResourceList is a list of the DosProtectedResources resources.
+// DosProtectedResourceList is a list of the DosProtectedResource resources.
 type DosProtectedResourceList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata"`
 
-	Items []DosProtectedResources `json:"items"`
+	Items []DosProtectedResource `json:"items"`
 }

@@ -4,7 +4,7 @@ metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.7.0
   creationTimestamp: null
-  name: dosprotectedresources.appprotectdos.f5.com
+  name: dosprotectedresource.appprotectdos.f5.com
 spec:
   group: appprotectdos.f5.com
   names:

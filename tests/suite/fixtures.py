@@ -669,7 +669,7 @@ def crd_ingress_controller_with_dos(
             f"{DEPLOYMENTS}/common/crds/appprotectdos.f5.com_apdoslogconfs.yaml"
         )
         dos_protected_crd_name = get_name_from_yaml(
-            f"{DEPLOYMENTS}/common/crds/appprotectdos.f5.com_dosprotectedresources.yaml"
+            f"{DEPLOYMENTS}/common/crds/appprotectdos.f5.com_dosprotectedresource.yaml"
         )
         create_crd_from_yaml(
             kube_apis.api_extensions_v1,
@@ -684,7 +684,7 @@ def crd_ingress_controller_with_dos(
         create_crd_from_yaml(
             kube_apis.api_extensions_v1,
             dos_protected_crd_name,
-            f"{DEPLOYMENTS}/common/crds/appprotectdos.f5.com_dosprotectedresources.yaml",
+            f"{DEPLOYMENTS}/common/crds/appprotectdos.f5.com_dosprotectedresource.yaml",
         )
 
         print("------------------------- Create IC -----------------------------------")

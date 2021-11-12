@@ -19,7 +19,7 @@ var appProtectDosLogConfRequiredFields = [][]string{
 	{"spec", "filter"},
 }
 
-var dosProtectedResourcesRequiredFields = [][]string{
+var dosProtectedResourceRequiredFields = [][]string{
 	{"spec"},
 }
 
@@ -36,9 +36,9 @@ func ValidateAppProtectDosLogConf(logConf *unstructured.Unstructured) error {
 	return nil
 }
 
-func ValidateDosProtectedResources(protectedRes *unstructured.Unstructured) error {
+func ValidateDosProtectedResource(protectedRes *unstructured.Unstructured) error {
 	name := protectedRes.GetName()
-	err := ValidateRequiredFields(protectedRes, dosProtectedResourcesRequiredFields)
+	err := ValidateRequiredFields(protectedRes, dosProtectedResourceRequiredFields)
 	if err != nil {
 		return fmt.Errorf("error validating Dos Protected Resource %v: %w", name, err)
 	}

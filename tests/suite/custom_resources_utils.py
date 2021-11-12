@@ -421,7 +421,7 @@ def create_dos_protected_from_yaml(custom_objects: CustomObjectsApi, yaml_manife
         dep['spec']['dosSecurityLog']['dosLogDest'] = dep['spec']['dosSecurityLog']['dosLogDest'].replace("<NAMESPACE>", namespace)
         dep['spec']['apDosPolicy'] = dep['spec']['apDosPolicy'].replace("<NAMESPACE>", namespace)
     custom_objects.create_namespaced_custom_object(
-        "appprotectdos.f5.com", "v1beta1", namespace, "dosprotectedresources", dep
+        "appprotectdos.f5.com", "v1beta1", namespace, "dosprotectedresource", dep
     )
     print(f"DOS Protected resource created with name '{dep['metadata']['name']}'")
     return dep["metadata"]["name"]
@@ -569,14 +569,14 @@ def delete_dos_protected(custom_objects: CustomObjectsApi, name, namespace) -> N
     """
     print(f"Delete DOS protected: {name}")
     custom_objects.delete_namespaced_custom_object(
-        "appprotectdos.f5.com", "v1beta1", namespace, "dosprotectedresources", name
+        "appprotectdos.f5.com", "v1beta1", namespace, "dosprotectedresource", name
     )
     ensure_item_removal(
         custom_objects.get_namespaced_custom_object,
         "appprotectdos.f5.com",
         "v1beta1",
         namespace,
-        "dosprotectedresources",
+        "dosprotectedresource",
         name,
     )
     print(f"DOS logconf was removed with name: {name}")

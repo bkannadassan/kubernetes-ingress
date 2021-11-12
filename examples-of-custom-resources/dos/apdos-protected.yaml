@@ -1,5 +1,5 @@
 apiVersion: appprotectdos.f5.com/v1beta1
-kind: DosProtectedResources
+kind: DosProtectedResource
 metadata:
   name: dos-protected
 spec:

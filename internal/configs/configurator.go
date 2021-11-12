@@ -266,8 +266,8 @@ func (cnf *Configurator) AddOrUpdateIngress(ingEx *IngressEx) (Warnings, error) 
 func (cnf *Configurator) addOrUpdateIngress(ingEx *IngressEx) (Warnings, error) {
 	apResources := cnf.updateApResources(ingEx)
 
-	cnf.updateApDosResources(ingEx.DosResourceEx) // todo move this
-	dosResources := getAppProtectDosResources(ingEx.DosResourceEx)
+	cnf.updateApDosResource(ingEx.DosResourceEx) // todo move this
+	dosResource := getAppProtectDosResource(ingEx.DosResourceEx)
 
 	if jwtKey, exists := ingEx.Ingress.Annotations[JWTKeyAnnotation]; exists {
 		// LocalSecretStore will not set Path if the secret is not on the filesystem.
@@ -277,7 +277,7 @@ func (cnf *Configurator) addOrUpdateIngress(ingEx *IngressEx) (Warnings, error) 
 	}
 
 	isMinion := false
-	nginxCfg, warnings := generateNginxCfg(ingEx, apResources, dosResources, isMinion, cnf.cfgParams, cnf.isPlus, cnf.IsResolverConfigured(),
+	nginxCfg, warnings := generateNginxCfg(ingEx, apResources, dosResource, isMinion, cnf.cfgParams, cnf.isPlus, cnf.IsResolverConfigured(),
 		cnf.staticCfgParams, cnf.isWildcardEnabled)
 	name := objectMetaToFileName(&ingEx.Ingress.ObjectMeta)
 	content, err := cnf.templateExecutor.ExecuteIngressConfigTemplate(&nginxCfg)
@@ -309,8 +309,8 @@ func (cnf *Configurator) AddOrUpdateMergeableIngress(mergeableIngs *MergeableIng
 
 func (cnf *Configurator) addOrUpdateMergeableIngress(mergeableIngs *MergeableIngresses) (Warnings, error) {
 	apResources := cnf.updateApResources(mergeableIngs.Master)
-	cnf.updateApDosResources(mergeableIngs.Master.DosResourceEx)
-	dosResources := getAppProtectDosResources(mergeableIngs.Master.DosResourceEx)
+	cnf.updateApDosResource(mergeableIngs.Master.DosResourceEx)
+	dosResource := getAppProtectDosResource(mergeableIngs.Master.DosResourceEx)
 
 	// LocalSecretStore will not set Path if the secret is not on the filesystem.
 	// However, NGINX configuration for an Ingress resource, to handle the case of a missing secret,
@@ -324,7 +324,7 @@ func (cnf *Configurator) addOrUpdateMergeableIngress(mergeableIngs *MergeableIng
 		}
 	}
 
-	nginxCfg, warnings := generateNginxCfgForMergeableIngresses(mergeableIngs, apResources, dosResources, cnf.cfgParams, cnf.isPlus,
+	nginxCfg, warnings := generateNginxCfgForMergeableIngresses(mergeableIngs, apResources, dosResource, cnf.cfgParams, cnf.isPlus,
 		cnf.IsResolverConfigured(), cnf.staticCfgParams, cnf.isWildcardEnabled)
 
 	name := objectMetaToFileName(&mergeableIngs.Master.Ingress.ObjectMeta)
@@ -447,16 +447,16 @@ func (cnf *Configurator) addOrUpdateOpenTracingTracerConfig(content string) erro
 
 func (cnf *Configurator) addOrUpdateVirtualServer(virtualServerEx *VirtualServerEx) (Warnings, error) {
 	apResources := cnf.updateApResourcesForVs(virtualServerEx)
-	dosResources := map[string]*appProtectDosResources{}
+	dosResource := map[string]*appProtectDosResource{}
 	for k, v := range virtualServerEx.DosProtectedEx {
-		cnf.updateApDosResources(v)
-		dosResources[k] = getAppProtectDosResources(v)
+		cnf.updateApDosResource(v)
+		dosResource[k] = getAppProtectDosResource(v)
 	}
 
 	name := getFileNameForVirtualServer(virtualServerEx.VirtualServer)
 
 	vsc := newVirtualServerConfigurator(cnf.cfgParams, cnf.isPlus, cnf.IsResolverConfigured(), cnf.staticCfgParams)
-	vsCfg, warnings := vsc.GenerateVirtualServerConfig(virtualServerEx, apResources, dosResources)
+	vsCfg, warnings := vsc.GenerateVirtualServerConfig(virtualServerEx, apResources, dosResource)
 	content, err := cnf.templateExecutorV2.ExecuteVirtualServerTemplate(&vsCfg)
 	if err != nil {
 		return warnings, fmt.Errorf("Error generating VirtualServer config: %v: %w", name, err)
@@ -1297,10 +1297,10 @@ func (cnf *Configurator) updateApResources(ingEx *IngressEx) *appProtectResource
 func getDosProtectedStringValue(obj *unstructured.Unstructured, fields ...string) string {
 	val, has, err := unstructured.NestedString(obj.Object, fields...)
 	if err != nil {
-		glog.Warningf("Failed to get value from DosProtectedResources: %v, %v", fields, err)
+		glog.Warningf("Failed to get value from DosProtectedResource: %v, %v", fields, err)
 	}
 	if !has {
-		glog.Warningf("Missing value from DosProtectedResources: %v, %v", fields, err)
+		glog.Warningf("Missing value from DosProtectedResource: %v, %v", fields, err)
 	}
 	return val
 }
@@ -1308,15 +1308,15 @@ func getDosProtectedStringValue(obj *unstructured.Unstructured, fields ...string
 func getDosProtectedBoolValue(obj *unstructured.Unstructured, fields ...string) bool {
 	val, has, err := unstructured.NestedBool(obj.Object, fields...)
 	if err != nil {
-		glog.Warningf("Failed to get value from DosProtectedResources: %v, %v", fields, err)
+		glog.Warningf("Failed to get value from DosProtectedResource: %v, %v", fields, err)
 	}
 	if !has {
-		glog.Warningf("Missing value from DosProtectedResources: %v, %v", fields, err)
+		glog.Warningf("Missing value from DosProtectedResource: %v, %v", fields, err)
 	}
 	return val
 }
 
-func (cnf *Configurator) updateApDosResources(dosEx *DosProtectedEx) {
+func (cnf *Configurator) updateApDosResource(dosEx *DosProtectedEx) {
 	if dosEx != nil {
 		if dosEx.DosPolicy != nil {
 			policyFileName := appProtectDosPolicyFileNameFromUnstruct(dosEx.DosPolicy)

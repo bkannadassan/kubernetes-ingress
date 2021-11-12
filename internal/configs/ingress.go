@@ -72,7 +72,7 @@ type MergeableIngresses struct {
 	Minions []*IngressEx
 }
 
-func generateNginxCfg(ingEx *IngressEx, apResources *appProtectResources, dosResource *appProtectDosResources, isMinion bool,
+func generateNginxCfg(ingEx *IngressEx, apResources *appProtectResources, dosResource *appProtectDosResource, isMinion bool,
 	baseCfgParams *ConfigParams, isPlus bool, isResolverConfigured bool, staticParams *StaticConfigParams, isWildcardEnabled bool) (version1.IngressNginxConfig, Warnings) {
 	hasAppProtect := staticParams.MainAppProtectLoadModule
 	hasAppProtectDos := staticParams.MainAppProtectDosLoadModule
@@ -530,7 +530,7 @@ func upstreamMapToSlice(upstreams map[string]version1.Upstream) []version1.Upstr
 }
 
 func generateNginxCfgForMergeableIngresses(mergeableIngs *MergeableIngresses, apResources *appProtectResources,
-	dosResources *appProtectDosResources, baseCfgParams *ConfigParams, isPlus bool, isResolverConfigured bool,
+	dosResource *appProtectDosResource, baseCfgParams *ConfigParams, isPlus bool, isResolverConfigured bool,
 	staticParams *StaticConfigParams, isWildcardEnabled bool) (version1.IngressNginxConfig, Warnings) {
 
 	var masterServer version1.Server
@@ -550,7 +550,7 @@ func generateNginxCfgForMergeableIngresses(mergeableIngs *MergeableIngresses, ap
 	}
 	isMinion := false
 
-	masterNginxCfg, warnings := generateNginxCfg(mergeableIngs.Master, apResources, dosResources, isMinion, baseCfgParams, isPlus, isResolverConfigured, staticParams, isWildcardEnabled)
+	masterNginxCfg, warnings := generateNginxCfg(mergeableIngs.Master, apResources, dosResource, isMinion, baseCfgParams, isPlus, isResolverConfigured, staticParams, isWildcardEnabled)
 
 	// because mergeableIngs.Master.Ingress is a deepcopy of the original master
 	// we need to change the key in the warnings to the original master
@@ -589,8 +589,8 @@ func generateNginxCfgForMergeableIngresses(mergeableIngs *MergeableIngresses, ap
 		isMinion := true
 		// App Protect Resources not allowed in minions - pass empty struct
 		dummyApResources := &appProtectResources{}
-		dummyDosResources := &appProtectDosResources{}
-		nginxCfg, minionWarnings := generateNginxCfg(minion, dummyApResources, dummyDosResources, isMinion, baseCfgParams, isPlus, isResolverConfigured, staticParams, isWildcardEnabled)
+		dummyDosResource := &appProtectDosResource{}
+		nginxCfg, minionWarnings := generateNginxCfg(minion, dummyApResources, dummyDosResource, isMinion, baseCfgParams, isPlus, isResolverConfigured, staticParams, isWildcardEnabled)
 		warnings.Add(minionWarnings)
 
 		// because minion.Ingress is a deepcopy of the original minion

@@ -1421,7 +1421,7 @@ func TestGenerateNginxCfgForAppProtectDos(t *testing.T) {
 
 	isPlus := true
 	configParams := NewDefaultConfigParams(isPlus)
-	dosResources := &appProtectDosResources{
+	dosResource := &appProtectDosResource{
 		AppProtectDosEnable:       "on",
 		AppProtectDosName:         "dos.example.com",
 		AppProtectDosMonitor:      "monitor-name",
@@ -1444,7 +1444,7 @@ func TestGenerateNginxCfgForAppProtectDos(t *testing.T) {
 	expected.Servers[0].AppProtectDosAccessLogDst = "access-log-dest"
 	expected.Ingress.Annotations = cafeIngressEx.Ingress.Annotations
 
-	result, warnings := generateNginxCfg(&cafeIngressEx, nil, dosResources, false, configParams, isPlus, false, staticCfgParams, false)
+	result, warnings := generateNginxCfg(&cafeIngressEx, nil, dosResource, false, configParams, isPlus, false, staticCfgParams, false)
 	if diff := cmp.Diff(expected, result); diff != "" {
 		t.Errorf("generateNginxCfg() returned unexpected result (-want +got):\n%s", diff)
 	}
@@ -1477,7 +1477,7 @@ func TestGenerateNginxCfgForMergeableIngressesForAppProtectDos(t *testing.T) {
 
 	isPlus := true
 	configParams := NewDefaultConfigParams(isPlus)
-	apRes := &appProtectDosResources{
+	apRes := &appProtectDosResource{
 		AppProtectDosEnable:       "on",
 		AppProtectDosName:         "dos.example.com",
 		AppProtectDosMonitor:      "monitor-name",

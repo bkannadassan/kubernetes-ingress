@@ -24,7 +24,7 @@ rules:
   resources:
     - apdospolicies
     - apdoslogconfs
-    - dosprotectedresources
+    - dosprotectedresource
   verbs:
     - get
     - watch
