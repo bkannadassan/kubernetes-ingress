@@ -219,14 +219,10 @@ func newAppProtectResourceReferenceChecker(annotation string) *appProtectResourc
 	return &appProtectResourceReferenceChecker{annotation}
 }
 
-// In App Protect logConfs can be a coma separated list.
 func (rc *appProtectResourceReferenceChecker) IsReferencedByIngress(namespace string, name string, ing *networking.Ingress) bool {
 	if resName, exists := ing.Annotations[rc.annotation]; exists {
-		resNames := strings.Split(resName, ",")
-		for _, res := range resNames {
-			if res == namespace+"/"+name || (namespace == ing.Namespace && res == name) {
-				return true
-			}
+		if resName == namespace+"/"+name || (namespace == ing.Namespace && resName == name) {
+			return true
 		}
 	}
 	return false

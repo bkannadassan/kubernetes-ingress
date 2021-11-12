@@ -2175,8 +2175,8 @@ func (lbc *LoadBalancerController) createMergeableIngresses(ingConfig *IngressCo
 	}
 }
 
-// generateDosProtectedEx generates a rich type of from a namespace/name reference.
-func (lbc *LoadBalancerController) generateDosProtectedEx(parentNamespace string, ref string) (*configs.DosProtectedEx, error) {
+// getValidDosProtected generates a rich type of from a namespace/name reference.
+func (lbc *LoadBalancerController) getValidDosProtected(parentNamespace string, ref string) (*configs.DosProtectedEx, error) {
 	if ref == "" {
 		return nil, nil
 	}
@@ -2188,8 +2188,13 @@ func (lbc *LoadBalancerController) generateDosProtectedEx(parentNamespace string
 
 	dosProtected, err := lbc.appProtectDosConfiguration.GetAppResource(appprotectdos.DosProtectedResourceGVK.Kind, key)
 	if err != nil {
-		return nil, fmt.Errorf("dos protected resources reference '%v' is invalid: %w", key, err)
+		return nil, fmt.Errorf("dos protected resource reference '%v' is invalid: %w", key, err)
 	}
+	err = validation.ValidateDosProtectedResource(dosProtected)
+	if err != nil {
+		return nil, fmt.Errorf("dos protected resource '%v' is invalid: %w", key, err)
+	}
+
 	dosEx := &configs.DosProtectedEx{
 		DosProtected: dosProtected,
 	}
@@ -2205,7 +2210,11 @@ func (lbc *LoadBalancerController) generateDosProtectedEx(parentNamespace string
 
 		apDosPolicy, err := lbc.appProtectDosConfiguration.GetAppResource(appprotectdos.DosPolicyGVK.Kind, dosPolicyRef)
 		if err != nil {
-			return nil, fmt.Errorf("dos policy reference '%v' is invalid: %w", dosPolicyRef, err)
+			return nil, fmt.Errorf("dos policy '%v' is invalid: %w", dosPolicyRef, err)
+		}
+		err = validation.ValidateAppProtectDosPolicy(apDosPolicy)
+		if err != nil {
+			return nil, fmt.Errorf("dos policy '%v' is invalid: %w", dosPolicyRef, err)
 		}
 		dosEx.DosPolicy = apDosPolicy
 	}
@@ -2221,6 +2230,10 @@ func (lbc *LoadBalancerController) generateDosProtectedEx(parentNamespace string
 		}
 
 		logConf, err := lbc.appProtectDosConfiguration.GetAppResource(appprotectdos.DosLogConfGVK.Kind, logConfKey)
+		if err != nil {
+			return nil, fmt.Errorf("dos logconf %v is invalid: %w", logConfKey, err)
+		}
+		err = validation.ValidateAppProtectDosLogConf(logConf)
 		if err != nil {
 			return nil, fmt.Errorf("dos logconf %v is invalid: %w", logConfKey, err)
 		}
@@ -2285,7 +2298,7 @@ func (lbc *LoadBalancerController) createIngressEx(ing *networking.Ingress, vali
 
 		if lbc.appProtectDosEnabled {
 			if dosProtectedAnnotationValue, exists := ingEx.Ingress.Annotations[configs.AppProtectDosProtectedAnnotation]; exists {
-				dosResEx, err := lbc.generateDosProtectedEx(ing.Namespace, dosProtectedAnnotationValue)
+				dosResEx, err := lbc.getValidDosProtected(ing.Namespace, dosProtectedAnnotationValue)
 				if err != nil {
 					glog.Warningf("Error Getting Dos Protected Resource %v for Ingress %v/%v: %v", dosProtectedAnnotationValue, ing.Namespace, ing.Name, err)
 				}
@@ -2489,8 +2502,7 @@ func (lbc *LoadBalancerController) createVirtualServerEx(virtualServer *conf_v1.
 		glog.Warningf("Error getting App Protect resource for VirtualServer %v/%v: %v", virtualServer.Namespace, virtualServer.Name, err)
 	}
 
-	// top level dos resource for this virtual server
-	dosEx, err := lbc.generateDosProtectedEx(virtualServer.Namespace, virtualServer.Spec.Dos)
+	dosEx, err := lbc.getValidDosProtected(virtualServer.Namespace, virtualServer.Spec.Dos)
 	if err != nil {
 		glog.Warningf("Error getting App Protect Dos resource for VirtualServer %v/%v: %v", virtualServer.Namespace, virtualServer.Name, err)
 	}
@@ -2570,7 +2582,7 @@ func (lbc *LoadBalancerController) createVirtualServerEx(virtualServer *conf_v1.
 			glog.Warningf("Error getting WAF policies for VirtualServer %v/%v: %v", virtualServer.Namespace, virtualServer.Name, err)
 		}
 
-		routeDosEx, err := lbc.generateDosProtectedEx(virtualServer.Namespace, r.Dos)
+		routeDosEx, err := lbc.getValidDosProtected(virtualServer.Namespace, r.Dos)
 		if err != nil {
 			glog.Warningf("Error getting App Protect Dos resource for VirtualServer %v/%v: %v", virtualServer.Namespace, virtualServer.Name, err)
 		}

@@ -16,7 +16,7 @@ const AppProtectLogConfAnnotation = "appprotect.f5.com/app-protect-security-log"
 // AppProtectLogConfDstAnnotation is where the NGINX AppProtect Log Configuration destination is specified
 const AppProtectLogConfDstAnnotation = "appprotect.f5.com/app-protect-security-log-destination"
 
-// AppProtectDosProtectedAnnotation is where the NGINX App Protect Dos Protected Resources is specified
+// AppProtectDosProtectedAnnotation is the namespace/name reference of a DosProtectedResource
 const AppProtectDosProtectedAnnotation = "appprotectdos.f5.com/app-protect-dos-resources"
 
 // nginxMeshInternalRoute specifies if the ingress resource is an internal route.

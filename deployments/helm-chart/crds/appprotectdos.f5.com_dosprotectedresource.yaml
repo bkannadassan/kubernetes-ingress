@@ -19,7 +19,7 @@ spec:
     - name: v1beta1
       schema:
         openAPIV3Schema:
-          description: DosProtectedResource defines a collection of Dos protected resources.
+          description: DosProtectedResource defines a Dos protected resource.
           type: object
           properties:
             apiVersion:

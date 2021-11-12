@@ -27,14 +27,14 @@ func TestValidateAppProtectDosAccessLogDest(t *testing.T) {
 	}
 
 	for _, tCase := range posDstAntns {
-		err := ValidateAppProtectDosLogDest(tCase)
+		err := validateAppProtectDosLogDest(tCase)
 		if err != nil {
 			t.Errorf("expected nil, got %v", err)
 		}
 	}
 
 	for _, nTCase := range negDstAntns {
-		err := ValidateAppProtectDosLogDest(nTCase[0])
+		err := validateAppProtectDosLogDest(nTCase[0])
 		if err == nil {
 			t.Errorf("got no error expected error containing '%s'", nTCase[1])
 		} else {
@@ -159,14 +159,14 @@ func TestValidateAppProtectDosName(t *testing.T) {
 	}
 
 	for _, tCase := range posDstAntns {
-		err := ValidateAppProtectDosName(tCase)
+		err := validateAppProtectDosName(tCase)
 		if err != nil {
 			t.Errorf("got %v expected nil", err)
 		}
 	}
 
 	for _, nTCase := range negDstAntns {
-		err := ValidateAppProtectDosName(nTCase[0])
+		err := validateAppProtectDosName(nTCase[0])
 		if err == nil {
 			t.Errorf("got no error expected error containing %s", nTCase[1])
 		} else {
@@ -188,14 +188,14 @@ func TestValidateAppProtectDosMonitor(t *testing.T) {
 	}
 
 	for _, tCase := range posDstAntns {
-		err := ValidateAppProtectDosMonitor(tCase)
+		err := validateAppProtectDosMonitor(tCase)
 		if err != nil {
 			t.Errorf("got %v expected nil", err)
 		}
 	}
 
 	for _, nTCase := range negDstAntns {
-		err := ValidateAppProtectDosMonitor(nTCase[0])
+		err := validateAppProtectDosMonitor(nTCase[0])
 		if err == nil {
 			t.Errorf("got no error expected error containing %s", nTCase[1])
 		} else {

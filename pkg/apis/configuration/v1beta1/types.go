@@ -7,7 +7,7 @@ import metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 // +kubebuilder:validation:Optional
 // +kubebuilder:resource:shortName=pr
 
-// DosProtectedResource defines a collection of Dos protected resources.
+// DosProtectedResource defines a Dos protected resource.
 type DosProtectedResource struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`

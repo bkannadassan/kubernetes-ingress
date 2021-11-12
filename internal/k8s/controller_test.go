@@ -2088,7 +2088,7 @@ func TestGenerateDosProtectedEx(t *testing.T) {
 		{
 			namespace: "default",
 			ref:       "dosNotExist",
-			error:     "dos protected resources reference 'default/dosNotExist' is invalid: App Protect Dos LogConf default/dosNotExist not found",
+			error:     "dos protected resource reference 'default/dosNotExist' is invalid: App Protect Dos LogConf default/dosNotExist not found",
 			msg:       "fails to find the referenced resource",
 		},
 		{
@@ -2123,20 +2123,20 @@ func TestGenerateDosProtectedEx(t *testing.T) {
 		},
 	}
 	for _, test := range tests {
-		dosEx, err := lbc.generateDosProtectedEx(test.namespace, test.ref)
+		dosEx, err := lbc.getValidDosProtected(test.namespace, test.ref)
 		if err != nil {
 			if test.error != "" {
 				// we expect an error, check if it matches
 				if test.error != err.Error() {
-					t.Errorf("generateDosProtectedEx() returned different error than expected for the case of: %v \nexpected error '%v' \nactual error '%v' \n", test.msg, test.error, err.Error())
+					t.Errorf("getValidDosProtected() returned different error than expected for the case of: %v \nexpected error '%v' \nactual error '%v' \n", test.msg, test.error, err.Error())
 				}
 				// all good
 			} else {
-				t.Errorf("generateDosProtectedEx() returned unexpected error for the case of: %v \n%v", test.msg, err)
+				t.Errorf("getValidDosProtected() returned unexpected error for the case of: %v \n%v", test.msg, err)
 			}
 		}
 		if diff := cmp.Diff(test.expected, dosEx); diff != "" {
-			t.Errorf("generateDosProtectedEx() returned unexpected result for the case of: %v (-want +got):\n%s", test.msg, diff)
+			t.Errorf("getValidDosProtected() returned unexpected result for the case of: %v (-want +got):\n%s", test.msg, diff)
 		}
 	}
 }

@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/util/validation"
 )
 
 var appProtectDosPolicyRequiredFields = [][]string{
@@ -19,28 +20,117 @@ var appProtectDosLogConfRequiredFields = [][]string{
 	{"spec", "filter"},
 }
 
-var dosProtectedResourceRequiredFields = [][]string{
-	{"spec"},
+const MaxNameLength = 63
+
+func ValidateDosProtectedResource(protected *unstructured.Unstructured) error {
+	name := protected.GetName()
+
+	_, has, err := unstructured.NestedBool(protected.Object, "spec", "enable")
+	if err != nil {
+		return fmt.Errorf("error validating Dos Protected Resource %v: %w", name, err)
+	}
+	if !has {
+		return fmt.Errorf("DosProtectedResource %v: missing field: spec/%v", name, "enable")
+	}
+
+	err = validateProtectedStringField(protected, validateAppProtectDosName, "spec", "name")
+	if err != nil {
+		return fmt.Errorf("error validating Dos Protected resource %v: %w", name, err)
+	}
+
+	err = validateProtectedStringField(protected, validateAppProtectDosMonitor, "spec", "apDosMonitor")
+	if err != nil {
+		return fmt.Errorf("error validating Dos Protected resource %v: %w", name, err)
+	}
+
+	err = validateProtectedStringField(protected, validateAppProtectDosLogDest, "spec", "dosAccessLogDest")
+	if err != nil {
+		return fmt.Errorf("error validating Dos Protected resource %v: %w", name, err)
+	}
+
+	err = validateProtectedStringField(protected, validateResourceReference, "spec", "apDosPolicy")
+	if err != nil {
+		return fmt.Errorf("error validating Dos Protected resource %v: %w", name, err)
+	}
+
+	err = validateProtectedStringField(protected, validateResourceReference, "spec", "dosSecurityLog", "apDosLogConf")
+	if err != nil {
+		return fmt.Errorf("error validating Dos Protected resource %v: %w", name, err)
+	}
+
+	err = validateProtectedStringField(protected, validateAppProtectDosLogDest, "spec", "dosSecurityLog", "dosLogDest")
+	if err != nil {
+		return fmt.Errorf("error validating Dos Protected resource %v: %w", name, err)
+	}
+
+	_, has, err = unstructured.NestedBool(protected.Object, "spec", "dosSecurityLog", "enable")
+	if err != nil {
+		return fmt.Errorf("error validating Dos Protected Resource %v: %w", name, err)
+	}
+	if !has {
+		return fmt.Errorf("DosProtectedResource %v: missing field: spec/%v", name, "dosSecurityLog/enable")
+	}
+
+	return nil
 }
 
-const MaxNameLength = 63
+func validateProtectedStringField(protected *unstructured.Unstructured, validateFunc func(s string) error, path ...string) error {
+	value, has, err := unstructured.NestedString(protected.Object, path...)
+	if err != nil {
+		return fmt.Errorf("error validating field: %w", err)
+	}
+
+	if !has {
+		return fmt.Errorf("missing field: %v", strings.Join(path, "/"))
+	}
+
+	if validateFunc != nil {
+		err = validateFunc(value)
+		if err != nil {
+			return fmt.Errorf("error validating field '%v': %w", strings.Join(path, "/"), err)
+		}
+	}
+
+	return nil
+}
+
+// validateResourceReference validates a resource reference. A valid resource can be either namespace/name or name.
+func validateResourceReference(ref string) error {
+	parts := strings.Split(ref, "/")
+	length := len(parts)
+	if length == 0 {
+		return fmt.Errorf("reference is empty")
+	}
+
+	if length == 1 {
+		errs := validation.IsDNS1123Subdomain(parts[0])
+		if len(errs) != 0 {
+			return fmt.Errorf("reference name is invalid: %v", ref)
+		}
+		return nil
+	}
+
+	if length == 2 {
+		errs := validation.IsDNS1123Label(parts[0])
+		if len(errs) != 0 {
+			return fmt.Errorf("reference namespace is invalid: %v", ref)
+		}
+		errs = validation.IsDNS1123Subdomain(parts[1])
+		if len(errs) != 0 {
+			return fmt.Errorf("reference name is invalid: %v", ref)
+		}
+		return nil
+	}
+
+	return fmt.Errorf("reference name is invalid: %v", ref)
+}
 
 // ValidateAppProtectDosLogConf validates LogConfiguration resource
 func ValidateAppProtectDosLogConf(logConf *unstructured.Unstructured) error {
 	lcName := logConf.GetName()
 	err := ValidateRequiredFields(logConf, appProtectDosLogConfRequiredFields)
 	if err != nil {
-		return fmt.Errorf("Error validating App Protect Dos Log Configuration %v: %w", lcName, err)
-	}
-
-	return nil
-}
-
-func ValidateDosProtectedResource(protectedRes *unstructured.Unstructured) error {
-	name := protectedRes.GetName()
-	err := ValidateRequiredFields(protectedRes, dosProtectedResourceRequiredFields)
-	if err != nil {
-		return fmt.Errorf("error validating Dos Protected Resource %v: %w", name, err)
+		return fmt.Errorf("error validating App Protect Dos Log Configuration %v: %w", lcName, err)
 	}
 
 	return nil
@@ -52,8 +142,7 @@ var (
 	validLocalhostRegex = regexp.MustCompile(`^localhost:\d{1,5}$`)
 )
 
-// ValidateAppProtectDosLogDest validates destination for log configuration
-func ValidateAppProtectDosLogDest(dstAntn string) error {
+func validateAppProtectDosLogDest(dstAntn string) error {
 	if validIpRegex.MatchString(dstAntn) || validDnsRegex.MatchString(dstAntn) || validLocalhostRegex.MatchString(dstAntn) {
 		chunks := strings.Split(dstAntn, ":")
 		err := validatePort(chunks[1])
@@ -77,10 +166,9 @@ func validatePort(value string) error {
 	return nil
 }
 
-// ValidateAppProtectDosName validates name of App Protect Dos
-func ValidateAppProtectDosName(name string) error {
+func validateAppProtectDosName(name string) error {
 	if len(name) > MaxNameLength {
-		return fmt.Errorf("App Protect Dos Name max length is %v", MaxNameLength)
+		return fmt.Errorf("app Protect Dos Name max length is %v", MaxNameLength)
 	}
 
 	if err := validateEscapedString(name, "protected-object-one"); err != nil {
@@ -90,11 +178,10 @@ func ValidateAppProtectDosName(name string) error {
 	return nil
 }
 
-// ValidateAppProtectDosMonitor validates monitor value of App Protect Dos
-func ValidateAppProtectDosMonitor(monitor string) error {
+func validateAppProtectDosMonitor(monitor string) error {
 	_, err := url.Parse(monitor)
 	if err != nil {
-		return fmt.Errorf("App Protect Dos Monitor must have valid URL")
+		return fmt.Errorf("app Protect Dos Monitor must have valid URL")
 	}
 
 	if err := validateEscapedString(monitor, "http://www.example.com"); err != nil {
@@ -110,7 +197,7 @@ func ValidateAppProtectDosPolicy(policy *unstructured.Unstructured) error {
 
 	err := ValidateRequiredFields(policy, appProtectDosPolicyRequiredFields)
 	if err != nil {
-		return fmt.Errorf("Error validating App Protect Dos Policy %v: %w", polName, err)
+		return fmt.Errorf("error validating App Protect Dos Policy %v: %w", polName, err)
 	}
 
 	return nil
