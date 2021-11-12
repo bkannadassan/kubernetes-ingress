@@ -17,7 +17,7 @@ const AppProtectLogConfAnnotation = "appprotect.f5.com/app-protect-security-log"
 const AppProtectLogConfDstAnnotation = "appprotect.f5.com/app-protect-security-log-destination"
 
 // AppProtectDosProtectedAnnotation is the namespace/name reference of a DosProtectedResource
-const AppProtectDosProtectedAnnotation = "appprotectdos.f5.com/app-protect-dos-resources"
+const AppProtectDosProtectedAnnotation = "appprotectdos.f5.com/app-protect-dos-resource"
 
 // nginxMeshInternalRoute specifies if the ingress resource is an internal route.
 const nginxMeshInternalRouteAnnotation = "nsm.nginx.com/internal-route"
@@ -49,7 +49,7 @@ var minionBlacklist = map[string]bool{
 	"appprotect.f5.com/app_protect_policy":              true,
 	"appprotect.f5.com/app_protect_security_log_enable": true,
 	"appprotect.f5.com/app_protect_security_log":        true,
-	"appprotectdos.f5.com/app-protect-dos-resources":    true,
+	"appprotectdos.f5.com/app-protect-dos-resource":     true,
 }
 
 var minionInheritanceList = map[string]bool{

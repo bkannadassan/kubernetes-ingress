@@ -1139,7 +1139,7 @@ def create_ingress_with_dos_annotations(
 
     with open(yaml_manifest) as f:
         doc = yaml.safe_load(f)
-        doc["metadata"]["annotations"]["appprotectdos.f5.com/app-protect-dos-resources"] = dos_protected
+        doc["metadata"]["annotations"]["appprotectdos.f5.com/app-protect-dos-resource"] = dos_protected
         create_ingress(kube_apis.networking_v1, namespace, doc)
 
 
