@@ -153,7 +153,7 @@ func TestValidateAppProtectDosName(t *testing.T) {
 
 	// Negative test cases item, expected error message
 	negDstAntns := [][]string{
-		{"very very very very very very very very very very very very very very very very very very long Name", fmt.Sprintf(`App Protect Dos Name max length is %v`, MaxNameLength)},
+		{"very very very very very very very very very very very very very very very very very very long Name", fmt.Sprintf(`app Protect Dos Name max length is %v`, MaxNameLength)},
 		{"example.com\\", "must have all '\"' (double quotes) escaped and must not end with an unescaped '\\' (backslash) (e.g. 'protected-object-one', regex used for validation is '([^\"\\\\]|\\\\.)*')"},
 		{"\"example.com\"", "must have all '\"' (double quotes) escaped and must not end with an unescaped '\\' (backslash) (e.g. 'protected-object-one', regex used for validation is '([^\"\\\\]|\\\\.)*')"},
 	}
@@ -171,7 +171,7 @@ func TestValidateAppProtectDosName(t *testing.T) {
 			t.Errorf("got no error expected error containing %s", nTCase[1])
 		} else {
 			if !strings.Contains(err.Error(), nTCase[1]) {
-				t.Errorf("got %v expected to contain: %s", err, nTCase[1])
+				t.Errorf("got '%v'\n expected: '%s'\n", err, nTCase[1])
 			}
 		}
 	}
@@ -183,7 +183,7 @@ func TestValidateAppProtectDosMonitor(t *testing.T) {
 
 	// Negative test cases item, expected error message
 	negDstAntns := [][]string{
-		{"http://example.com/%", "App Protect Dos Monitor must have valid URL"},
+		{"http://example.com/%", "app Protect Dos Monitor must have valid URL"},
 		{"http://example.com/\\", "must have all '\"' (double quotes) escaped and must not end with an unescaped '\\' (backslash) (e.g. 'http://www.example.com', regex used for validation is '([^\"\\\\]|\\\\.)*')"},
 	}
 

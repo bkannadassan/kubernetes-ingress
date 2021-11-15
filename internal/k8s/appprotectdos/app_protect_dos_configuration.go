@@ -229,7 +229,7 @@ func (ci *ConfigurationImpl) GetAppResource(kind, key string) (*unstructured.Uns
 			}
 			return nil, fmt.Errorf(obj.ErrorMsg)
 		}
-		return nil, fmt.Errorf("app Protect Dos Policy %s not found", name)
+		return nil, fmt.Errorf("App Protect Dos Policy %s not found", name)
 	case DosLogConfGVK.Kind:
 		if obj, ok := ci.dosLogConfs[name]; ok {
 			if obj.IsValid {
@@ -237,7 +237,7 @@ func (ci *ConfigurationImpl) GetAppResource(kind, key string) (*unstructured.Uns
 			}
 			return nil, fmt.Errorf(obj.ErrorMsg)
 		}
-		return nil, fmt.Errorf("app Protect DosLogConf %s not found", name)
+		return nil, fmt.Errorf("App Protect DosLogConf %s not found", name)
 	case DosProtectedResourceGVK.Kind:
 		if obj, ok := ci.dosProtectedResource[name]; ok {
 			if obj.IsValid {
@@ -245,9 +245,9 @@ func (ci *ConfigurationImpl) GetAppResource(kind, key string) (*unstructured.Uns
 			}
 			return nil, fmt.Errorf(obj.ErrorMsg)
 		}
-		return nil, fmt.Errorf("app Protect DosProtectedResource %s not found", name)
+		return nil, fmt.Errorf("App Protect DosProtectedResource %s not found", name)
 	}
-	return nil, fmt.Errorf("unknown App Protect Dos resource kind %s", kind)
+	return nil, fmt.Errorf("Unknown App Protect Dos resource kind %s", kind)
 }
 
 // DeletePolicy deletes an App Protect Policy from App Protect Dos Configuration

@@ -16,8 +16,7 @@ func TestCreateAppProtectDosPolicyEx(t *testing.T) {
 	}{
 		{
 			policy: &unstructured.Unstructured{
-				Object: map[string]interface{}{
-				},
+				Object: map[string]interface{}{},
 			},
 			expectedPolicyEx: &DosPolicyEx{
 				IsValid:  false,
@@ -29,8 +28,7 @@ func TestCreateAppProtectDosPolicyEx(t *testing.T) {
 		{
 			policy: &unstructured.Unstructured{
 				Object: map[string]interface{}{
-					"spec": map[string]interface{}{
-					},
+					"spec": map[string]interface{}{},
 				},
 			},
 			expectedPolicyEx: &DosPolicyEx{
@@ -167,7 +165,7 @@ func TestAddOrUpdateDosPolicy(t *testing.T) {
 				{
 					Object:  invalidTestPolicy,
 					Reason:  "Rejected",
-					Message: "Error validating dos policy : Error validating App Protect Dos Policy : Required field map[] not found",
+					Message: "Error validating dos policy : error validating App Protect Dos Policy : Required field map[] not found",
 				},
 			},
 			msg: "validation failed",
@@ -245,7 +243,7 @@ func TestAddOrUpdateDosLogConf(t *testing.T) {
 				{
 					Object:  invalidLogConf,
 					Reason:  "Rejected",
-					Message: "Error validating App Protect Dos Log Configuration testlogconf: Required field map[] not found",
+					Message: "error validating App Protect Dos Log Configuration testlogconf: Required field map[] not found",
 				},
 			},
 			msg: "validation failed",
@@ -347,24 +345,24 @@ func TestGetAppProtectDosResource(t *testing.T) {
 		msg     string
 	}{
 		{
-			kind:    "APDosPolicy",
+			kind:    "DosProtectedResource",
 			key:     "testing/test1",
 			wantErr: false,
-			msg:     "Policy, positive",
+			msg:     "DosProtectedResource, positive",
 		},
 		{
-			kind:    "APDosPolicy",
+			kind:    "DosProtectedResource",
 			key:     "testing/test2",
 			wantErr: true,
 			errMsg:  "Validation Failed",
-			msg:     "Policy, Negative, invalid object",
+			msg:     "DosProtectedResource, Negative, invalid object",
 		},
 		{
-			kind:    "APDosPolicy",
+			kind:    "DosProtectedResource",
 			key:     "testing/test3",
 			wantErr: true,
-			errMsg:  "App Protect Dos Policy testing/test3 not found",
-			msg:     "Policy, Negative, Object Does not exist",
+			errMsg:  "App Protect DosProtectedResource testing/test3 not found",
+			msg:     "DosProtectedResource, Negative, Object Does not exist",
 		},
 		{
 			kind:    "APDosLogConf",
@@ -395,7 +393,9 @@ func TestGetAppProtectDosResource(t *testing.T) {
 		},
 	}
 	appProtectConfiguration := newConfigurationImpl()
-	appProtectConfiguration.dosPolicies["testing/test1"] = &DosPolicyEx{IsValid: true, Obj: &unstructured.Unstructured{}}
+	appProtectConfiguration.dosProtectedResource["testing/test1"] = &DosProtectedResourceEx{IsValid: true, Obj: &unstructured.Unstructured{}}
+	appProtectConfiguration.dosProtectedResource["testing/test2"] = &DosProtectedResourceEx{IsValid: false, Obj: &unstructured.Unstructured{}, ErrorMsg: "Validation Failed"}
+	appProtectConfiguration.dosPolicies["testing/test2"] = &DosPolicyEx{IsValid: false, Obj: &unstructured.Unstructured{}, ErrorMsg: "Validation Failed"}
 	appProtectConfiguration.dosPolicies["testing/test2"] = &DosPolicyEx{IsValid: false, Obj: &unstructured.Unstructured{}, ErrorMsg: "Validation Failed"}
 	appProtectConfiguration.dosLogConfs["testing/test1"] = &DosLogConfEx{IsValid: true, Obj: &unstructured.Unstructured{}}
 	appProtectConfiguration.dosLogConfs["testing/test2"] = &DosLogConfEx{IsValid: false, Obj: &unstructured.Unstructured{}, ErrorMsg: "Validation Failed"}
@@ -407,7 +407,7 @@ func TestGetAppProtectDosResource(t *testing.T) {
 		}
 		if test.wantErr || err != nil {
 			if test.errMsg != err.Error() {
-				t.Errorf("GetAppResource() returned error message %s on case %s (expected %s)", err.Error(), test.msg, test.errMsg)
+				t.Errorf("GetAppResource() returned error message '%s' on case '%s' (expected '%s')", err.Error(), test.msg, test.errMsg)
 			}
 		}
 	}

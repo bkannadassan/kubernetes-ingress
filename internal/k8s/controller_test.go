@@ -1988,6 +1988,10 @@ func TestGenerateDosProtectedEx(t *testing.T) {
 				"namespace": "default",
 				"name":      "dosLogConf",
 			},
+			"spec": map[string]interface{}{
+				"content": map[string]interface{}{},
+				"filter":  map[string]interface{}{},
+			},
 		},
 	}
 	dosPolicy := &unstructured.Unstructured{
@@ -1996,6 +2000,7 @@ func TestGenerateDosProtectedEx(t *testing.T) {
 				"namespace": "default",
 				"name":      "dosPolicy",
 			},
+			"spec": map[string]interface{}{},
 		},
 	}
 	dosProtectedOnly := &unstructured.Unstructured{
@@ -2003,6 +2008,12 @@ func TestGenerateDosProtectedEx(t *testing.T) {
 			"metadata": map[string]interface{}{
 				"namespace": "default",
 				"name":      "dosOnly",
+			},
+			"spec": map[string]interface{}{
+				"enable":           true,
+				"name":             "dos-protected",
+				"apDosMonitor":     "example.com",
+				"dosAccessLogDest": "127.0.0.1:5561",
 			},
 		},
 	}
@@ -2013,8 +2024,14 @@ func TestGenerateDosProtectedEx(t *testing.T) {
 				"name":      "dosWithLogConf",
 			},
 			"spec": map[string]interface{}{
+				"enable":           true,
+				"name":             "dos-protected",
+				"apDosMonitor":     "example.com",
+				"dosAccessLogDest": "127.0.0.1:5561",
 				"dosSecurityLog": map[string]interface{}{
+					"enable":       true,
 					"apDosLogConf": "dosLogConf",
+					"dosLogDest":   "syslog-svc.default.svc.cluster.local:514",
 				},
 			},
 		},
@@ -2026,7 +2043,11 @@ func TestGenerateDosProtectedEx(t *testing.T) {
 				"name":      "dosWithPolicy",
 			},
 			"spec": map[string]interface{}{
-				"apDosPolicy": "dosPolicy",
+				"enable":           true,
+				"name":             "dos-protected",
+				"apDosMonitor":     "example.com",
+				"dosAccessLogDest": "127.0.0.1:5561",
+				"apDosPolicy":      "dosPolicy",
 			},
 		},
 	}
@@ -2037,8 +2058,14 @@ func TestGenerateDosProtectedEx(t *testing.T) {
 				"name":      "dosWithInvalidLogConf",
 			},
 			"spec": map[string]interface{}{
+				"enable":           true,
+				"name":             "dos-protected",
+				"apDosMonitor":     "example.com",
+				"dosAccessLogDest": "127.0.0.1:5561",
 				"dosSecurityLog": map[string]interface{}{
+					"enable":       true,
 					"apDosLogConf": "invalid-dosLogConf",
+					"dosLogDest":   "syslog-svc.default.svc.cluster.local:514",
 				},
 			},
 		},
@@ -2050,7 +2077,11 @@ func TestGenerateDosProtectedEx(t *testing.T) {
 				"name":      "dosWithInvalidPolicy",
 			},
 			"spec": map[string]interface{}{
-				"apDosPolicy": "invalid-dosPolicy",
+				"enable":           true,
+				"name":             "dos-protected",
+				"apDosMonitor":     "example.com",
+				"dosAccessLogDest": "127.0.0.1:5561",
+				"apDosPolicy":      "invalid-dosPolicy",
 			},
 		},
 	}
@@ -2118,7 +2149,7 @@ func TestGenerateDosProtectedEx(t *testing.T) {
 		{
 			namespace: "default",
 			ref:       "default/dosWithInvalidPolicy",
-			error:     "dos policy reference 'default/invalid-dosPolicy' is invalid: App Protect Dos Policy default/invalid-dosPolicy not found",
+			error:     "dos policy 'default/invalid-dosPolicy' is invalid: App Protect Dos Policy default/invalid-dosPolicy not found",
 			msg:       "fails to find the referenced policy resource",
 		},
 	}

@@ -48,27 +48,39 @@ func ValidateDosProtectedResource(protected *unstructured.Unstructured) error {
 		return fmt.Errorf("error validating Dos Protected resource %v: %w", name, err)
 	}
 
-	err = validateProtectedStringField(protected, validateResourceReference, "spec", "apDosPolicy")
-	if err != nil {
-		return fmt.Errorf("error validating Dos Protected resource %v: %w", name, err)
-	}
-
-	err = validateProtectedStringField(protected, validateResourceReference, "spec", "dosSecurityLog", "apDosLogConf")
-	if err != nil {
-		return fmt.Errorf("error validating Dos Protected resource %v: %w", name, err)
-	}
-
-	err = validateProtectedStringField(protected, validateAppProtectDosLogDest, "spec", "dosSecurityLog", "dosLogDest")
-	if err != nil {
-		return fmt.Errorf("error validating Dos Protected resource %v: %w", name, err)
-	}
-
-	_, has, err = unstructured.NestedBool(protected.Object, "spec", "dosSecurityLog", "enable")
+	_, hasPolicy, err := unstructured.NestedFieldNoCopy(protected.Object, "spec", "apDosPolicy")
 	if err != nil {
 		return fmt.Errorf("error validating Dos Protected Resource %v: %w", name, err)
 	}
-	if !has {
-		return fmt.Errorf("DosProtectedResource %v: missing field: spec/%v", name, "dosSecurityLog/enable")
+	if hasPolicy {
+		err = validateProtectedStringField(protected, validateResourceReference, "spec", "apDosPolicy")
+		if err != nil {
+			return fmt.Errorf("error validating Dos Protected resource %v: %w", name, err)
+		}
+	}
+
+	_, hasLogConf, err := unstructured.NestedFieldNoCopy(protected.Object, "spec", "dosSecurityLog")
+	if err != nil {
+		return fmt.Errorf("error validating Dos Protected Resource %v: %w", name, err)
+	}
+	if hasLogConf {
+		_, has, err = unstructured.NestedBool(protected.Object, "spec", "dosSecurityLog", "enable")
+		if err != nil {
+			return fmt.Errorf("error validating Dos Protected Resource %v: %w", name, err)
+		}
+		if !has {
+			return fmt.Errorf("DosProtectedResource %v: missing field: spec/%v", name, "dosSecurityLog/enable")
+		}
+
+		err = validateProtectedStringField(protected, validateResourceReference, "spec", "dosSecurityLog", "apDosLogConf")
+		if err != nil {
+			return fmt.Errorf("error validating Dos Protected resource %v: %w", name, err)
+		}
+
+		err = validateProtectedStringField(protected, validateAppProtectDosLogDest, "spec", "dosSecurityLog", "dosLogDest")
+		if err != nil {
+			return fmt.Errorf("error validating Dos Protected resource %v: %w", name, err)
+		}
 	}
 
 	return nil
@@ -96,33 +108,12 @@ func validateProtectedStringField(protected *unstructured.Unstructured, validate
 
 // validateResourceReference validates a resource reference. A valid resource can be either namespace/name or name.
 func validateResourceReference(ref string) error {
-	parts := strings.Split(ref, "/")
-	length := len(parts)
-	if length == 0 {
-		return fmt.Errorf("reference is empty")
+	errs := validation.IsQualifiedName(ref)
+	if len(errs) != 0 {
+		return fmt.Errorf("reference name is invalid: %v", ref)
 	}
 
-	if length == 1 {
-		errs := validation.IsDNS1123Subdomain(parts[0])
-		if len(errs) != 0 {
-			return fmt.Errorf("reference name is invalid: %v", ref)
-		}
-		return nil
-	}
-
-	if length == 2 {
-		errs := validation.IsDNS1123Label(parts[0])
-		if len(errs) != 0 {
-			return fmt.Errorf("reference namespace is invalid: %v", ref)
-		}
-		errs = validation.IsDNS1123Subdomain(parts[1])
-		if len(errs) != 0 {
-			return fmt.Errorf("reference name is invalid: %v", ref)
-		}
-		return nil
-	}
-
-	return fmt.Errorf("reference name is invalid: %v", ref)
+	return nil
 }
 
 // ValidateAppProtectDosLogConf validates LogConfiguration resource

@@ -221,8 +221,11 @@ func newAppProtectResourceReferenceChecker(annotation string) *appProtectResourc
 
 func (rc *appProtectResourceReferenceChecker) IsReferencedByIngress(namespace string, name string, ing *networking.Ingress) bool {
 	if resName, exists := ing.Annotations[rc.annotation]; exists {
-		if resName == namespace+"/"+name || (namespace == ing.Namespace && resName == name) {
-			return true
+		resNames := strings.Split(resName, ",")
+		for _, res := range resNames {
+			if res == namespace+"/"+name || (namespace == ing.Namespace && res == name) {
+				return true
+			}
 		}
 	}
 	return false
