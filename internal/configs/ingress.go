@@ -6,6 +6,8 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/nginxinc/kubernetes-ingress/pkg/apis/dos/v1beta1"
+
 	"github.com/golang/glog"
 	"github.com/nginxinc/kubernetes-ingress/internal/k8s/secrets"
 	api_v1 "k8s.io/api/core/v1"
@@ -42,12 +44,12 @@ type IngressEx struct {
 	ValidMinionPaths map[string]bool
 	AppProtectPolicy *unstructured.Unstructured
 	AppProtectLogs   []AppProtectLog
-	DosResourceEx    *DosProtectedEx
+	DosEx            *DosEx
 	SecretRefs       map[string]*secrets.SecretReference
 }
 
-type DosProtectedEx struct {
-	DosProtected *unstructured.Unstructured
+type DosEx struct {
+	DosProtected *v1beta1.DosProtectedResource
 	DosPolicy    *unstructured.Unstructured
 	DosLogConf   *unstructured.Unstructured
 }

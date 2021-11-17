@@ -1456,7 +1456,7 @@ func TestGenerateNginxCfgForAppProtectDos(t *testing.T) {
 func TestGenerateNginxCfgForMergeableIngressesForAppProtectDos(t *testing.T) {
 	mergeableIngresses := createMergeableCafeIngress()
 	mergeableIngresses.Master.Ingress.Annotations["appprotectdos.f5.com/app-protect-dos-enable"] = "True"
-	mergeableIngresses.Master.DosResourceEx = &DosProtectedEx{
+	mergeableIngresses.Master.DosEx = &DosEx{
 		DosPolicy: &unstructured.Unstructured{
 			Object: map[string]interface{}{
 				"metadata": map[string]interface{}{

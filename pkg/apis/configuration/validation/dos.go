@@ -7,6 +7,8 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/nginxinc/kubernetes-ingress/pkg/apis/dos/v1beta1"
+
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/util/validation"
 )
@@ -22,84 +24,55 @@ var appProtectDosLogConfRequiredFields = [][]string{
 
 const MaxNameLength = 63
 
-func ValidateDosProtectedResource(protected *unstructured.Unstructured) error {
-	name := protected.GetName()
+func ValidateDosProtectedResource(protected *v1beta1.DosProtectedResource) error {
+	var err error
 
-	_, has, err := unstructured.NestedBool(protected.Object, "spec", "enable")
-	if err != nil {
-		return fmt.Errorf("error validating Dos Protected Resource %v: %w", name, err)
+	// name
+	if protected.Spec.Name == "" {
+		return fmt.Errorf("error validating DosProtectedResource: %v missing value for field: %v", protected.Name, "name")
 	}
-	if !has {
-		return fmt.Errorf("DosProtectedResource %v: missing field: spec/%v", name, "enable")
-	}
-
-	err = validateProtectedStringField(protected, validateAppProtectDosName, "spec", "name")
+	err = validateAppProtectDosName(protected.Spec.Name)
 	if err != nil {
-		return fmt.Errorf("error validating Dos Protected resource %v: %w", name, err)
+		return fmt.Errorf("error validating DosProtectedResource: %v invalid field: %v err: %w", protected.Name, "name", err)
 	}
 
-	err = validateProtectedStringField(protected, validateAppProtectDosMonitor, "spec", "apDosMonitor")
+	// apDosMonitor
+	if protected.Spec.ApDosMonitor == "" {
+		return fmt.Errorf("error validating DosProtectedResource: %v missing value for field: %v", protected.Name, "apDosMonitor")
+	}
+	err = validateAppProtectDosMonitor(protected.Spec.ApDosMonitor)
 	if err != nil {
-		return fmt.Errorf("error validating Dos Protected resource %v: %w", name, err)
+		return fmt.Errorf("error validating DosProtectedResource: %v invalid field: %v err: %w", protected.Name, "apDosMonitor", err)
 	}
 
-	err = validateProtectedStringField(protected, validateAppProtectDosLogDest, "spec", "dosAccessLogDest")
+	// dosAccessLogDest
+	if protected.Spec.DosAccessLogDest == "" {
+		return fmt.Errorf("error validating DosProtectedResource: %v missing value for field: %v", protected.Name, "dosAccessLogDest")
+	}
+	err = validateAppProtectDosLogDest(protected.Spec.DosAccessLogDest)
 	if err != nil {
-		return fmt.Errorf("error validating Dos Protected resource %v: %w", name, err)
+		return fmt.Errorf("error validating DosProtectedResource: %v invalid field: %v err: %w", protected.Name, "dosAccessLogDest", err)
 	}
 
-	_, hasPolicy, err := unstructured.NestedFieldNoCopy(protected.Object, "spec", "apDosPolicy")
-	if err != nil {
-		return fmt.Errorf("error validating Dos Protected Resource %v: %w", name, err)
-	}
-	if hasPolicy {
-		err = validateProtectedStringField(protected, validateResourceReference, "spec", "apDosPolicy")
+	// apDosPolicy
+	if protected.Spec.ApDosPolicy != "" {
+		err = validateResourceReference(protected.Spec.ApDosPolicy)
 		if err != nil {
-			return fmt.Errorf("error validating Dos Protected resource %v: %w", name, err)
+			return fmt.Errorf("error validating DosProtectedResource: %v invalid field: %v err: %w", protected.Name, "apDosPolicy", err)
 		}
 	}
 
-	_, hasLogConf, err := unstructured.NestedFieldNoCopy(protected.Object, "spec", "dosSecurityLog")
-	if err != nil {
-		return fmt.Errorf("error validating Dos Protected Resource %v: %w", name, err)
-	}
-	if hasLogConf {
-		_, has, err = unstructured.NestedBool(protected.Object, "spec", "dosSecurityLog", "enable")
+	// dosSecurityLog
+	if protected.Spec.DosSecurityLog != nil {
+		// dosLogDest
+		err = validateAppProtectDosLogDest(protected.Spec.DosSecurityLog.DosLogDest)
 		if err != nil {
-			return fmt.Errorf("error validating Dos Protected Resource %v: %w", name, err)
+			return fmt.Errorf("error validating DosProtectedResource: %v invalid field: %v err: %w", protected.Name, "dosSecurityLog/dosLogDest", err)
 		}
-		if !has {
-			return fmt.Errorf("DosProtectedResource %v: missing field: spec/%v", name, "dosSecurityLog/enable")
-		}
-
-		err = validateProtectedStringField(protected, validateResourceReference, "spec", "dosSecurityLog", "apDosLogConf")
+		// apDosLogConf
+		err = validateResourceReference(protected.Spec.DosSecurityLog.ApDosLogConf)
 		if err != nil {
-			return fmt.Errorf("error validating Dos Protected resource %v: %w", name, err)
-		}
-
-		err = validateProtectedStringField(protected, validateAppProtectDosLogDest, "spec", "dosSecurityLog", "dosLogDest")
-		if err != nil {
-			return fmt.Errorf("error validating Dos Protected resource %v: %w", name, err)
-		}
-	}
-
-	return nil
-}
-
-func validateProtectedStringField(protected *unstructured.Unstructured, validateFunc func(s string) error, path ...string) error {
-	value, has, err := unstructured.NestedString(protected.Object, path...)
-	if err != nil {
-		return fmt.Errorf("error validating field: %w", err)
-	}
-
-	if !has {
-		return fmt.Errorf("missing field: %v", strings.Join(path, "/"))
-	}
-
-	if validateFunc != nil {
-		err = validateFunc(value)
-		if err != nil {
-			return fmt.Errorf("error validating field '%v': %w", strings.Join(path, "/"), err)
+			return fmt.Errorf("error validating DosProtectedResource: %v invalid field: %v err: %w", protected.Name, "dosSecurityLog/apDosLogConf", err)
 		}
 	}
 
@@ -188,7 +161,7 @@ func ValidateAppProtectDosPolicy(policy *unstructured.Unstructured) error {
 
 	err := ValidateRequiredFields(policy, appProtectDosPolicyRequiredFields)
 	if err != nil {
-		return fmt.Errorf("error validating App Protect Dos Policy %v: %w", polName, err)
+		return fmt.Errorf("error validating DosPolicy %v: %w", polName, err)
 	}
 
 	return nil

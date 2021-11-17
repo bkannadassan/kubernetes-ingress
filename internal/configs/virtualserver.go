@@ -64,7 +64,7 @@ type VirtualServerEx struct {
 	ApPolRefs           map[string]*unstructured.Unstructured
 	LogConfRefs         map[string]*unstructured.Unstructured
 	DosProtectedRefs    map[string]*unstructured.Unstructured
-	DosProtectedEx      map[string]*DosProtectedEx
+	DosProtectedEx      map[string]*DosEx
 }
 
 func (vsx *VirtualServerEx) String() string {
@@ -2242,4 +2242,19 @@ func generateProxySSLName(svcName, ns string) string {
 
 func isTLSEnabled(u conf_v1.Upstream, spiffeCerts bool) bool {
 	return u.TLS.Enable || spiffeCerts
+}
+
+func generateDosCfg(dosResource *appProtectDosResource) *version2.Dos {
+	if dosResource == nil {
+		return nil
+	}
+	dos := &version2.Dos{}
+	dos.Enable = dosResource.AppProtectDosEnable
+	dos.Name = dosResource.AppProtectDosName
+	dos.ApDosMonitor = dosResource.AppProtectDosMonitor
+	dos.ApDosAccessLogDest = dosResource.AppProtectDosAccessLogDst
+	dos.ApDosPolicy = dosResource.AppProtectDosPolicyFile
+	dos.ApDosSecurityLogEnable = dosResource.AppProtectDosLogEnable
+	dos.ApDosLogConf = dosResource.AppProtectDosLogConfFile
+	return dos
 }
