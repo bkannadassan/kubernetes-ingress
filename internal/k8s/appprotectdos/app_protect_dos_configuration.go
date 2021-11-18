@@ -162,36 +162,33 @@ func (ci *Configuration) AddOrUpdateDosProtectedResource(protectedConf *v1beta1.
 }
 
 func (ci *Configuration) getPolicy(key string) (*unstructured.Unstructured, error) {
-	name := appprotect_common.GetNamespacedName(key)
-	if obj, ok := ci.dosPolicies[name]; ok {
+	if obj, ok := ci.dosPolicies[key]; ok {
 		if obj.IsValid {
 			return obj.Obj, nil
 		}
 		return nil, fmt.Errorf(obj.ErrorMsg)
 	}
-	return nil, fmt.Errorf("DosPolicy %s not found", name)
+	return nil, fmt.Errorf("DosPolicy %s not found", key)
 }
 
-func (ci *Configuration) GetLogConf(key string) (*unstructured.Unstructured, error) {
-	name := appprotect_common.GetNamespacedName(key)
-	if obj, ok := ci.dosLogConfs[name]; ok {
+func (ci *Configuration) getLogConf(key string) (*unstructured.Unstructured, error) {
+	if obj, ok := ci.dosLogConfs[key]; ok {
 		if obj.IsValid {
 			return obj.Obj, nil
 		}
 		return nil, fmt.Errorf(obj.ErrorMsg)
 	}
-	return nil, fmt.Errorf("DosLogConf %s not found", name)
+	return nil, fmt.Errorf("DosLogConf %s not found", key)
 }
 
-func (ci *Configuration) GetDosProtected(key string) (*v1beta1.DosProtectedResource, error) {
-	name := appprotect_common.GetNamespacedName(key)
-	if obj, ok := ci.dosProtectedResource[name]; ok {
+func (ci *Configuration) getDosProtected(key string) (*v1beta1.DosProtectedResource, error) {
+	if obj, ok := ci.dosProtectedResource[key]; ok {
 		if obj.IsValid {
 			return obj.Obj, nil
 		}
 		return nil, fmt.Errorf(obj.ErrorMsg)
 	}
-	return nil, fmt.Errorf("DosProtectedResource %s not found", name)
+	return nil, fmt.Errorf("DosProtectedResource %s not found", key)
 }
 
 func (ci *Configuration) GetDosEx(parentNamespace string, name string) (*configs.DosEx, error) {
@@ -206,14 +203,24 @@ func (ci *Configuration) GetDosEx(parentNamespace string, name string) (*configs
 	}
 	dosEx.DosProtected = protectedEx.Obj
 	if protectedEx.Obj.Spec.ApDosPolicy != "" {
-		pol, err := ci.getPolicy(protectedEx.Obj.Spec.ApDosPolicy) // todo add dos protected namespace + test cases
+		policyReference := protectedEx.Obj.Spec.ApDosPolicy
+		// if the policy reference does not have a namespace, use the dos protected' namespace
+		if !strings.Contains(policyReference, "/") {
+			policyReference = protectedEx.Obj.Namespace + "/" + policyReference
+		}
+		pol, err := ci.getPolicy(policyReference)
 		if err != nil {
 			return nil, fmt.Errorf("DosProtectedResource references a missing DosPolicy: %w", err)
 		}
 		dosEx.DosPolicy = pol
 	}
 	if protectedEx.Obj.Spec.DosSecurityLog != nil && protectedEx.Obj.Spec.DosSecurityLog.ApDosLogConf != "" {
-		log, err := ci.GetLogConf(protectedEx.Obj.Spec.DosSecurityLog.ApDosLogConf) // todo add dos protected namespace + test cases
+		logConfReference := protectedEx.Obj.Spec.DosSecurityLog.ApDosLogConf
+		// if the log conf reference does not have a namespace, use the dos protected' namespace
+		if !strings.Contains(logConfReference, "/") {
+			logConfReference = protectedEx.Obj.Namespace + "/" + logConfReference
+		}
+		log, err := ci.getLogConf(logConfReference)
 		if err != nil {
 			return nil, fmt.Errorf("DosProtectedResource references a missing DosLogConf: %w", err)
 		}

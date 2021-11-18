@@ -3367,19 +3367,8 @@ func (lbc *LoadBalancerController) syncAppProtectDosPolicy(task task) {
 
 	if !polExists {
 		glog.V(2).Infof("Deleting APDosPolicy: %v\n", key)
-
 		changes, problems = lbc.dosConfiguration.DeletePolicy(key)
 	} else {
-		policy := obj.(*unstructured.Unstructured)
-		err := validation.ValidateAppProtectDosPolicy(policy)
-		if err != nil {
-			msg := fmt.Sprintf("APDosPolicy %v/%vis invalid and was rejected: %v", policy.GetNamespace(), policy.GetName(), err)
-			lbc.recorder.Eventf(policy, api_v1.EventTypeWarning, "Rejected", msg)
-		} else {
-			msg := fmt.Sprintf("APDosPolicy %v/%v was added or updated", policy.GetNamespace(), policy.GetName())
-			lbc.recorder.Eventf(policy, api_v1.EventTypeNormal, "AddedOrUpdated", msg)
-		}
-
 		glog.V(2).Infof("Adding or Updating APDosPolicy: %v\n", key)
 		changes, problems = lbc.dosConfiguration.AddOrUpdatePolicy(obj.(*unstructured.Unstructured))
 	}
@@ -3404,16 +3393,6 @@ func (lbc *LoadBalancerController) syncAppProtectDosLogConf(task task) {
 		glog.V(2).Infof("Deleting APDosLogConf: %v\n", key)
 		changes, problems = lbc.dosConfiguration.DeleteLogConf(key)
 	} else {
-		logConf := obj.(*unstructured.Unstructured)
-		err := validation.ValidateAppProtectDosLogConf(logConf)
-		if err != nil {
-			msg := fmt.Sprintf("APDosLogConf %v/%vis invalid and was rejected: %v", logConf.GetNamespace(), logConf.GetName(), err)
-			lbc.recorder.Eventf(logConf, api_v1.EventTypeWarning, "Rejected", msg)
-		} else {
-			msg := fmt.Sprintf("APDosLogConf %v/%v was added or updated", logConf.GetNamespace(), logConf.GetName())
-			lbc.recorder.Eventf(logConf, api_v1.EventTypeNormal, "AddedOrUpdated", msg)
-		}
-
 		glog.V(2).Infof("Adding or Updating APDosLogConf: %v\n", key)
 		changes, problems = lbc.dosConfiguration.AddOrUpdateLogConf(obj.(*unstructured.Unstructured))
 	}
@@ -3435,18 +3414,8 @@ func (lbc *LoadBalancerController) syncDosProtectedResource(task task) {
 	var problems []appprotectdos.Problem
 
 	if confExists {
-		protected := obj.(*v1beta1.DosProtectedResource)
-		err := validation.ValidateDosProtectedResource(protected)
-		if err != nil {
-			msg := fmt.Sprintf("DosProtectedResource %v/%vis invalid and was rejected: %v", protected.GetNamespace(), protected.GetName(), err)
-			lbc.recorder.Eventf(protected, api_v1.EventTypeWarning, "Rejected", msg)
-		} else {
-			msg := fmt.Sprintf("DosProtectedResource %v/%v was added or updated", protected.GetNamespace(), protected.GetName())
-			lbc.recorder.Eventf(protected, api_v1.EventTypeNormal, "AddedOrUpdated", msg)
-		}
-
 		glog.V(2).Infof("Adding or Updating DosProtectedResource: %v\n", key)
-		changes, problems = lbc.dosConfiguration.AddOrUpdateDosProtectedResource(protected)
+		changes, problems = lbc.dosConfiguration.AddOrUpdateDosProtectedResource(obj.(*v1beta1.DosProtectedResource))
 	} else {
 		glog.V(2).Infof("Deleting DosProtectedResource: %v\n", key)
 		changes, problems = lbc.dosConfiguration.DeleteProtectedResource(key)

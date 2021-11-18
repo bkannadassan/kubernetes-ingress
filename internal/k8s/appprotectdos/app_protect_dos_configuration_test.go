@@ -490,13 +490,13 @@ func TestGetDosProtected(t *testing.T) {
 	appProtectConfiguration.dosProtectedResource["testing/test2"] = &DosProtectedResourceEx{IsValid: false, Obj: &v1beta1.DosProtectedResource{}, ErrorMsg: "Validation Failed"}
 
 	for _, test := range tests {
-		_, err := appProtectConfiguration.GetDosProtected(test.key)
+		_, err := appProtectConfiguration.getDosProtected(test.key)
 		if (err != nil) != test.wantErr {
-			t.Errorf("GetDosProtected() returned %v on case %s", err, test.msg)
+			t.Errorf("getDosProtected() returned %v on case %s", err, test.msg)
 		}
 		if test.wantErr || err != nil {
 			if test.errMsg != err.Error() {
-				t.Errorf("GetDosProtected() returned error message '%s' on case '%s' (expected '%s')", err.Error(), test.msg, test.errMsg)
+				t.Errorf("getDosProtected() returned error message '%s' on case '%s' (expected '%s')", err.Error(), test.msg, test.errMsg)
 			}
 		}
 	}
@@ -582,13 +582,13 @@ func TestGetLogConf(t *testing.T) {
 	appProtectConfiguration.dosLogConfs["testing/test2"] = &DosLogConfEx{IsValid: false, Obj: &unstructured.Unstructured{}, ErrorMsg: "Validation Failed"}
 
 	for _, test := range tests {
-		_, err := appProtectConfiguration.GetLogConf(test.key)
+		_, err := appProtectConfiguration.getLogConf(test.key)
 		if (err != nil) != test.wantErr {
-			t.Errorf("GetLogConf() returned %v on case %s", err, test.msg)
+			t.Errorf("getLogConf() returned %v on case %s", err, test.msg)
 		}
 		if test.wantErr || err != nil {
 			if test.errMsg != err.Error() {
-				t.Errorf("GetLogConf() returned error message '%s' on case '%s' (expected '%s')", err.Error(), test.msg, test.errMsg)
+				t.Errorf("getLogConf() returned error message '%s' on case '%s' (expected '%s')", err.Error(), test.msg, test.errMsg)
 			}
 		}
 	}
