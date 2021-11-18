@@ -36,7 +36,7 @@ func TestUpdateApDosResource(t *testing.T) {
 		TypeMeta: v1.TypeMeta{},
 		ObjectMeta: v1.ObjectMeta{
 			Name:      "dosOnly",
-			Namespace: "default",
+			Namespace: "test-ns",
 		},
 		Spec: v1beta1.DosProtectedResourceSpec{
 			Enable:           true,
@@ -49,7 +49,7 @@ func TestUpdateApDosResource(t *testing.T) {
 		TypeMeta: v1.TypeMeta{},
 		ObjectMeta: v1.ObjectMeta{
 			Name:      "dosWithLogConf",
-			Namespace: "default",
+			Namespace: "test-ns",
 		},
 		Spec: v1beta1.DosProtectedResourceSpec{
 			Enable:           true,
@@ -80,7 +80,7 @@ func TestUpdateApDosResource(t *testing.T) {
 			},
 			expected: &appProtectDosResource{
 				AppProtectDosEnable:       "on",
-				AppProtectDosName:         "dos-protected",
+				AppProtectDosName:         "test-ns/dos-protected",
 				AppProtectDosMonitor:      "example.com",
 				AppProtectDosAccessLogDst: "127.0.0.1:5561",
 			},
@@ -93,7 +93,7 @@ func TestUpdateApDosResource(t *testing.T) {
 			},
 			expected: &appProtectDosResource{
 				AppProtectDosEnable:       "on",
-				AppProtectDosName:         "dos-protected",
+				AppProtectDosName:         "test-ns/dos-protected",
 				AppProtectDosMonitor:      "example.com",
 				AppProtectDosAccessLogDst: "127.0.0.1:5561",
 				AppProtectDosPolicyFile:   "/etc/nginx/dos/policies/test-ns_test-name.json",
@@ -108,7 +108,7 @@ func TestUpdateApDosResource(t *testing.T) {
 			},
 			expected: &appProtectDosResource{
 				AppProtectDosEnable:       "on",
-				AppProtectDosName:         "dos-protected",
+				AppProtectDosName:         "test-ns/dos-protected",
 				AppProtectDosMonitor:      "example.com",
 				AppProtectDosAccessLogDst: "127.0.0.1:5561",
 				AppProtectDosPolicyFile:   "/etc/nginx/dos/policies/test-ns_test-name.json",
@@ -122,7 +122,7 @@ func TestUpdateApDosResource(t *testing.T) {
 	for _, test := range tests {
 		result := getAppProtectDosResource(test.dosProtectedEx)
 		if !reflect.DeepEqual(result, test.expected) {
-			t.Errorf("updateApResources() returned \n%v but expected\n%v for the case of %s", result, test.expected, test.msg)
+			t.Errorf("getAppProtectDosResource() returned:\n%v\nbut expected:\n%v\n for the case of '%s'", result, test.expected, test.msg)
 		}
 	}
 }

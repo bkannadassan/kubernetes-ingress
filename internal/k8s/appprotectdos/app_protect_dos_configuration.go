@@ -152,13 +152,37 @@ func (ci *Configuration) AddOrUpdateLogConf(logConfObj *unstructured.Unstructure
 // AddOrUpdateDosProtectedResource adds or updates App Protect Dos ProtectedResource Configuration
 func (ci *Configuration) AddOrUpdateDosProtectedResource(protectedConf *v1beta1.DosProtectedResource) ([]Change, []Problem) {
 	resNsName := protectedConf.Namespace + "/" + protectedConf.Name
-	protectedResource, err := createDosProtectedResourceEx(protectedConf)
-	ci.dosProtectedResource[resNsName] = protectedResource
+	protectedEx, err := createDosProtectedResourceEx(protectedConf)
+	ci.dosProtectedResource[resNsName] = protectedEx
 	if err != nil {
-		return []Change{{Op: Delete, Resource: protectedResource}},
+		return []Change{{Op: Delete, Resource: protectedEx}},
 			[]Problem{{Object: protectedConf, Reason: "Rejected", Message: err.Error()}}
 	}
-	return []Change{{Op: AddOrUpdate, Resource: protectedResource}}, nil
+	if protectedEx.Obj.Spec.ApDosPolicy != "" {
+		policyReference := protectedEx.Obj.Spec.ApDosPolicy
+		// if the policy reference does not have a namespace, use the dos protected' namespace
+		if !strings.Contains(policyReference, "/") {
+			policyReference = protectedEx.Obj.Namespace + "/" + policyReference
+		}
+		_, err := ci.getPolicy(policyReference)
+		if err != nil {
+			return []Change{{Op: Delete, Resource: protectedEx}},
+				[]Problem{{Object: protectedConf, Reason: "Rejected", Message: fmt.Sprintf("dos protected refers (%s) to an invalid DosPolicy: %s", policyReference, err.Error())}}
+		}
+	}
+	if protectedEx.Obj.Spec.DosSecurityLog != nil && protectedEx.Obj.Spec.DosSecurityLog.ApDosLogConf != "" {
+		logConfReference := protectedEx.Obj.Spec.DosSecurityLog.ApDosLogConf
+		// if the log conf reference does not have a namespace, use the dos protected' namespace
+		if !strings.Contains(logConfReference, "/") {
+			logConfReference = protectedEx.Obj.Namespace + "/" + logConfReference
+		}
+		_, err := ci.getLogConf(logConfReference)
+		if err != nil {
+			return []Change{{Op: Delete, Resource: protectedEx}},
+				[]Problem{{Object: protectedConf, Reason: "Rejected", Message: fmt.Sprintf("dos protected refers (%s) to an invalid DosLogConf: %s", logConfReference, err.Error())}}
+		}
+	}
+	return []Change{{Op: AddOrUpdate, Resource: protectedEx}}, nil
 }
 
 func (ci *Configuration) getPolicy(key string) (*unstructured.Unstructured, error) {
