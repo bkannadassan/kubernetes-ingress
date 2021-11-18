@@ -5,6 +5,8 @@ import (
 	"reflect"
 	"sort"
 
+	"github.com/nginxinc/kubernetes-ingress/pkg/apis/dos/v1beta1"
+
 	"github.com/golang/glog"
 	"github.com/nginxinc/kubernetes-ingress/internal/k8s/secrets"
 	v1 "k8s.io/api/core/v1"
@@ -134,7 +136,7 @@ func createSecretHandlers(lbc *LoadBalancerController) cache.ResourceEventHandle
 		AddFunc: func(obj interface{}) {
 			secret := obj.(*v1.Secret)
 			if !secrets.IsSupportedSecretType(secret.Type) {
-				glog.V(3).Infof("Ignoring Secret %v of unsupported type %v", secret.Name, secret.Type)
+				//glog.V(3).Infof("Ignoring Secret %v of unsupported type %v", secret.Name, secret.Type)
 				return
 			}
 			glog.V(3).Infof("Adding Secret: %v", secret.Name)
@@ -155,7 +157,7 @@ func createSecretHandlers(lbc *LoadBalancerController) cache.ResourceEventHandle
 				}
 			}
 			if !secrets.IsSupportedSecretType(secret.Type) {
-				glog.V(3).Infof("Ignoring Secret %v of unsupported type %v", secret.Name, secret.Type)
+				//glog.V(3).Infof("Ignoring Secret %v of unsupported type %v", secret.Name, secret.Type)
 				return
 			}
 
@@ -166,7 +168,7 @@ func createSecretHandlers(lbc *LoadBalancerController) cache.ResourceEventHandle
 			// A secret cannot change its type. That's why we only need to check the type of the current secret.
 			curSecret := cur.(*v1.Secret)
 			if !secrets.IsSupportedSecretType(curSecret.Type) {
-				glog.V(3).Infof("Ignoring Secret %v of unsupported type %v", curSecret.Name, curSecret.Type)
+				//glog.V(3).Infof("Ignoring Secret %v of unsupported type %v", curSecret.Name, curSecret.Type)
 				return
 			}
 
@@ -657,19 +659,15 @@ func createAppProtectDosLogConfHandlers(lbc *LoadBalancerController) cache.Resou
 func createAppProtectDosProtectedResourceHandlers(lbc *LoadBalancerController) cache.ResourceEventHandlerFuncs {
 	handlers := cache.ResourceEventHandlerFuncs{
 		AddFunc: func(obj interface{}) {
-			conf := obj.(*unstructured.Unstructured)
+			conf := obj.(*v1beta1.DosProtectedResource)
 			glog.V(3).Infof("Adding DosProtectedResource: %v", conf.GetName())
 			lbc.AddSyncQueue(conf)
 		},
 		UpdateFunc: func(oldObj, obj interface{}) {
-			oldConf := oldObj.(*unstructured.Unstructured)
-			newConf := obj.(*unstructured.Unstructured)
-			different, err := areResourcesDifferent(oldConf, newConf)
-			if err != nil {
-				glog.V(3).Infof("Error when comparing DosProtectedResource %v", err)
-				lbc.AddSyncQueue(newConf)
-			}
-			if different {
+			oldConf := oldObj.(*v1beta1.DosProtectedResource)
+			newConf := obj.(*v1beta1.DosProtectedResource)
+
+			if !reflect.DeepEqual(oldConf.Spec, newConf.Spec) {
 				glog.V(3).Infof("DosProtectedResource %v changed, syncing", oldConf.GetName())
 				lbc.AddSyncQueue(newConf)
 			}

@@ -20,7 +20,7 @@ func getAppProtectDosResource(dosEx *DosEx) *appProtectDosResource {
 			if protected.Spec.Enable {
 				dosResource.AppProtectDosEnable = "on"
 			}
-			dosResource.AppProtectDosName = protected.Namespace + "/" + protected.Spec.Name
+			dosResource.AppProtectDosName = protected.Namespace + "/" + protected.Name + "/" + protected.Spec.Name
 			dosResource.AppProtectDosMonitor = protected.Spec.ApDosMonitor
 			dosResource.AppProtectDosAccessLogDst = protected.Spec.DosAccessLogDest
 

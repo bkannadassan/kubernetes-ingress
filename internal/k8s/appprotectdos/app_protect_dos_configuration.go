@@ -50,7 +50,7 @@ var (
 	DosProtectedResourceGVR = schema.GroupVersionResource{
 		Group:    "appprotectdos.f5.com",
 		Version:  "v1beta1",
-		Resource: "dosprotectedresource",
+		Resource: "dosprotectedresources",
 	}
 	// DosProtectedResourceGVK is the group version kind of the dos protected resource
 	DosProtectedResourceGVK = schema.GroupVersionKind{

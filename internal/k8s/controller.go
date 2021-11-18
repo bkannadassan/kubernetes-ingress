@@ -254,6 +254,21 @@ func NewLoadBalancerController(input NewLoadBalancerControllerInput) *LoadBalanc
 	lbc.addEndpointHandler(createEndpointHandlers(lbc))
 	lbc.addPodHandler()
 
+	if lbc.areCustomResourcesEnabled {
+		lbc.confSharedInformerFactorry = k8s_nginx_informers.NewSharedInformerFactoryWithOptions(lbc.confClient, input.ResyncPeriod, k8s_nginx_informers.WithNamespace(lbc.namespace))
+
+		lbc.addVirtualServerHandler(createVirtualServerHandlers(lbc))
+		lbc.addVirtualServerRouteHandler(createVirtualServerRouteHandlers(lbc))
+		lbc.addTransportServerHandler(createTransportServerHandlers(lbc))
+		lbc.addPolicyHandler(createPolicyHandlers(lbc))
+
+		if input.GlobalConfiguration != "" {
+			lbc.watchGlobalConfiguration = true
+			ns, name, _ := ParseNamespaceName(input.GlobalConfiguration)
+			lbc.addGlobalConfigurationHandler(createGlobalConfigurationHandlers(lbc), ns, name)
+		}
+	}
+
 	if lbc.appProtectEnabled || lbc.appProtectDosEnabled {
 		lbc.dynInformerFactory = dynamicinformer.NewDynamicSharedInformerFactory(lbc.dynClient, 0)
 
@@ -267,21 +282,6 @@ func NewLoadBalancerController(input NewLoadBalancerControllerInput) *LoadBalanc
 			lbc.addAppProtectDosPolicyHandler(createAppProtectDosPolicyHandlers(lbc))
 			lbc.addAppProtectDosLogConfHandler(createAppProtectDosLogConfHandlers(lbc))
 			lbc.addAppProtectDosProtectedResourceHandler(createAppProtectDosProtectedResourceHandlers(lbc))
-		}
-	}
-
-	if lbc.areCustomResourcesEnabled {
-		lbc.confSharedInformerFactorry = k8s_nginx_informers.NewSharedInformerFactoryWithOptions(lbc.confClient, input.ResyncPeriod, k8s_nginx_informers.WithNamespace(lbc.namespace))
-
-		lbc.addVirtualServerHandler(createVirtualServerHandlers(lbc))
-		lbc.addVirtualServerRouteHandler(createVirtualServerRouteHandlers(lbc))
-		lbc.addTransportServerHandler(createTransportServerHandlers(lbc))
-		lbc.addPolicyHandler(createPolicyHandlers(lbc))
-
-		if input.GlobalConfiguration != "" {
-			lbc.watchGlobalConfiguration = true
-			ns, name, _ := ParseNamespaceName(input.GlobalConfiguration)
-			lbc.addGlobalConfigurationHandler(createGlobalConfigurationHandlers(lbc), ns, name)
 		}
 	}
 
@@ -399,7 +399,7 @@ func (lbc *LoadBalancerController) addAppProtectDosLogConfHandler(handlers cache
 
 // addAppProtectDosLogConfHandler creates dynamic informer for custom appprotectdos logging config resource
 func (lbc *LoadBalancerController) addAppProtectDosProtectedResourceHandler(handlers cache.ResourceEventHandlerFuncs) {
-	informer := lbc.dynInformerFactory.ForResource(appprotectdos.DosProtectedResourceGVR).Informer()
+	informer := lbc.confSharedInformerFactorry.Appprotectdos().V1beta1().DosProtectedResources().Informer()
 	informer.AddEventHandler(handlers)
 	lbc.appProtectDosProtectedLister = informer.GetStore()
 
@@ -740,7 +740,7 @@ func (lbc *LoadBalancerController) preSyncSecrets() {
 		secret := obj.(*api_v1.Secret)
 
 		if !secrets.IsSupportedSecretType(secret.Type) {
-			glog.V(3).Infof("Ignoring Secret %s/%s of unsupported type %s", secret.Namespace, secret.Name, secret.Type)
+			//glog.V(3).Infof("Ignoring Secret %s/%s of unsupported type %s", secret.Namespace, secret.Name, secret.Type)
 			continue
 		}
 

@@ -110,6 +110,7 @@ def dos_setup(
             "extra_args": [
                 f"-enable-custom-resources",
                 f"-enable-app-protect-dos",
+                f"-v=3",
             ]
         }
     ],
@@ -137,7 +138,7 @@ class TestDos:
         syslog_pod = kube_apis.v1.list_namespaced_pod(test_namespace).items[-1].metadata.name
 
         create_ingress_with_dos_annotations(
-            kube_apis, src_ing_yaml, test_namespace, "dos-protected"
+            kube_apis, src_ing_yaml, test_namespace, test_namespace+"/dos-protected"
         )
         ingress_host = get_first_ingress_host_from_yaml(src_ing_yaml)
 
@@ -162,8 +163,10 @@ class TestDos:
         delete_items_from_yaml(kube_apis, src_syslog_yaml, test_namespace)
         delete_items_from_yaml(kube_apis, src_ing_yaml, test_namespace)
 
+        print(log_contents)
+
         assert 'product="app-protect-dos"' in log_contents
-        assert 'vs_name="dos.example.com"' in log_contents
+        assert f'vs_name="{test_namespace}/dos-protected/name"' in log_contents
         assert 'bad_actor' in log_contents
 
     def test_ap_nginx_config_entries(
@@ -176,13 +179,13 @@ class TestDos:
             f"app_protect_dos_enable on;",
             f"app_protect_dos_security_log_enable on;",
             f"app_protect_dos_monitor \"dos.example.com\";",
-            f"app_protect_dos_name \"dos.example.com\";",
+            f"app_protect_dos_name \"{test_namespace}/dos-protected/name\";",
         ]
 
         wait_before_test(20)
 
         create_ingress_with_dos_annotations(
-            kube_apis, src_ing_yaml, test_namespace, "dos-protected",
+            kube_apis, src_ing_yaml, test_namespace, test_namespace+"/dos-protected",
         )
 
         ingress_host = get_first_ingress_host_from_yaml(src_ing_yaml)
