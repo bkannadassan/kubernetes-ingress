@@ -330,7 +330,7 @@ func NewLoadBalancerController(input NewLoadBalancerControllerInput) *LoadBalanc
 		input.IsTLSPassthroughEnabled)
 
 	lbc.appProtectConfiguration = appprotect.NewConfiguration()
-	lbc.dosConfiguration = appprotectdos.NewConfiguration()
+	lbc.dosConfiguration = appprotectdos.NewConfiguration(input.AppProtectDosEnabled)
 
 	lbc.secretStore = secrets.NewLocalSecretStore(lbc.configurator)
 
@@ -1324,10 +1324,7 @@ func (lbc *LoadBalancerController) processAppProtectDosChanges(changes []appprot
 				resourceExes := lbc.createExtendedResources(resources)
 				warnings, err := lbc.configurator.AddOrUpdateResourcesThatUseDosProtected(resourceExes.IngressExes, resourceExes.MergeableIngresses, resourceExes.VirtualServerExes)
 				lbc.updateResourcesStatusAndEvents(resources, warnings, err)
-
-				if len(resourceExes.IngressExes) == 0 || len(resourceExes.MergeableIngresses) == 0 || len(resourceExes.VirtualServerExes) == 0 {
-					lbc.configurator.DeleteAppProtectDosPolicy(impl.Obj)
-				}
+				lbc.configurator.DeleteAppProtectDosPolicy(impl.Obj)
 
 			case *appprotectdos.DosLogConfEx:
 				protectedResources = lbc.dosConfiguration.GetDosProtectedThatReferencedDosLogConf(impl.Obj.GetNamespace(), impl.Obj.GetName())
@@ -1335,10 +1332,7 @@ func (lbc *LoadBalancerController) processAppProtectDosChanges(changes []appprot
 				resourceExes := lbc.createExtendedResources(resources)
 				warnings, err := lbc.configurator.AddOrUpdateResourcesThatUseDosProtected(resourceExes.IngressExes, resourceExes.MergeableIngresses, resourceExes.VirtualServerExes)
 				lbc.updateResourcesStatusAndEvents(resources, warnings, err)
-
-				if len(resourceExes.IngressExes) == 0 || len(resourceExes.MergeableIngresses) == 0 || len(resourceExes.VirtualServerExes) == 0 {
-					lbc.configurator.DeleteAppProtectDosLogConf(impl.Obj)
-				}
+				lbc.configurator.DeleteAppProtectDosLogConf(impl.Obj)
 
 			case *appprotectdos.DosProtectedResourceEx:
 				protectedResources = []*v1beta1.DosProtectedResource{impl.Obj}
@@ -2236,7 +2230,9 @@ func (lbc *LoadBalancerController) createIngressEx(ing *networking.Ingress, vali
 				if err != nil {
 					glog.Warningf("Error Getting Dos Protected Resource %v for Ingress %v/%v: %v", dosProtectedAnnotationValue, ing.Namespace, ing.Name, err)
 				}
-				ingEx.DosEx = dosResEx
+				if dosResEx != nil {
+					ingEx.DosEx = dosResEx
+				}
 			}
 		}
 	}

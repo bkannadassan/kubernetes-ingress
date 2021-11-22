@@ -45,19 +45,6 @@ var (
 		Version: "v1beta1",
 		Kind:    "APDosLogConf",
 	}
-
-	// DosProtectedResourceGVR is the group version resource of the dos protected resource
-	DosProtectedResourceGVR = schema.GroupVersionResource{
-		Group:    "appprotectdos.f5.com",
-		Version:  "v1beta1",
-		Resource: "dosprotectedresources",
-	}
-	// DosProtectedResourceGVK is the group version kind of the dos protected resource
-	DosProtectedResourceGVK = schema.GroupVersionKind{
-		Group:   "appprotectdos.f5.com",
-		Version: "v1beta1",
-		Kind:    "DosProtectedResource",
-	}
 )
 
 // Operation defines an operation to perform for an App Protect Dos resource.
@@ -93,14 +80,16 @@ type Configuration struct {
 	dosPolicies          map[string]*DosPolicyEx
 	dosLogConfs          map[string]*DosLogConfEx
 	dosProtectedResource map[string]*DosProtectedResourceEx
+	isDosEnabled bool
 }
 
 // NewConfiguration creates a new App Protect Dos Configuration
-func NewConfiguration() *Configuration {
+func NewConfiguration(isDosEnabled bool) *Configuration {
 	return &Configuration{
 		dosPolicies:          make(map[string]*DosPolicyEx),
 		dosLogConfs:          make(map[string]*DosLogConfEx),
 		dosProtectedResource: make(map[string]*DosProtectedResourceEx),
+		isDosEnabled: isDosEnabled,
 	}
 }
 
@@ -215,8 +204,11 @@ func (ci *Configuration) getDosProtected(key string) (*v1beta1.DosProtectedResou
 	return nil, fmt.Errorf("DosProtectedResource %s not found", key)
 }
 
-func (ci *Configuration) GetDosEx(parentNamespace string, name string) (*configs.DosEx, error) {
-	var key = getNsName(parentNamespace, name)
+func (ci *Configuration) GetDosEx(parentNamespace string, nsName string) (*configs.DosEx, error) {
+	var key = getNsName(parentNamespace, nsName)
+	if !ci.isDosEnabled {
+		return nil, fmt.Errorf("DosProtectedResource is referenced but Dos feature is not enabled. resource: %v", key)
+	}
 	dosEx := &configs.DosEx{}
 	protectedEx, ok := ci.dosProtectedResource[key]
 	if !ok {

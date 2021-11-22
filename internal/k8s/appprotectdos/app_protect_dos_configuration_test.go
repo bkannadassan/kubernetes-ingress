@@ -134,7 +134,7 @@ func TestAddOrUpdateDosProtected(t *testing.T) {
 			DosAccessLogDest: "127.0.0.1:5561",
 		},
 	}
-	apc := NewConfiguration()
+	apc := NewConfiguration(true)
 	tests := []struct {
 		resource         *v1beta1.DosProtectedResource
 		expectedChanges  []Change
@@ -210,7 +210,7 @@ func TestAddOrUpdateDosPolicy(t *testing.T) {
 			},
 		},
 	}
-	apc := NewConfiguration()
+	apc := NewConfiguration(true)
 	tests := []struct {
 		policy           *unstructured.Unstructured
 		expectedChanges  []Change
@@ -288,7 +288,7 @@ func TestAddOrUpdateDosLogConf(t *testing.T) {
 			},
 		},
 	}
-	apc := NewConfiguration()
+	apc := NewConfiguration(true)
 	tests := []struct {
 		logconf          *unstructured.Unstructured
 		expectedChanges  []Change
@@ -343,7 +343,7 @@ func TestAddOrUpdateDosLogConf(t *testing.T) {
 }
 
 func TestDeletePolicy(t *testing.T) {
-	appProtectConfiguration := NewConfiguration()
+	appProtectConfiguration := NewConfiguration(true)
 	appProtectConfiguration.dosPolicies["testing/test"] = &DosPolicyEx{}
 	tests := []struct {
 		key              string
@@ -381,7 +381,7 @@ func TestDeletePolicy(t *testing.T) {
 }
 
 func TestDeleteDosLogConf(t *testing.T) {
-	appProtectConfiguration := NewConfiguration()
+	appProtectConfiguration := NewConfiguration(true)
 	appProtectConfiguration.dosLogConfs["testing/test"] = &DosLogConfEx{}
 	tests := []struct {
 		key              string
@@ -419,7 +419,7 @@ func TestDeleteDosLogConf(t *testing.T) {
 }
 
 func TestDeleteDosProtected(t *testing.T) {
-	appProtectConfiguration := NewConfiguration()
+	appProtectConfiguration := NewConfiguration(true)
 	appProtectConfiguration.dosProtectedResource["testing/test"] = &DosProtectedResourceEx{}
 	tests := []struct {
 		key              string
@@ -485,7 +485,7 @@ func TestGetDosProtected(t *testing.T) {
 			msg:     "DosProtectedResource, Negative, Object Does not exist",
 		},
 	}
-	appProtectConfiguration := NewConfiguration()
+	appProtectConfiguration := NewConfiguration(true)
 	appProtectConfiguration.dosProtectedResource["testing/test1"] = &DosProtectedResourceEx{IsValid: true, Obj: &v1beta1.DosProtectedResource{}}
 	appProtectConfiguration.dosProtectedResource["testing/test2"] = &DosProtectedResourceEx{IsValid: false, Obj: &v1beta1.DosProtectedResource{}, ErrorMsg: "Validation Failed"}
 
@@ -531,7 +531,7 @@ func TestGetPolicy(t *testing.T) {
 			msg:     "Policy, Negative, Object Does not exist",
 		},
 	}
-	appProtectConfiguration := NewConfiguration()
+	appProtectConfiguration := NewConfiguration(true)
 	appProtectConfiguration.dosPolicies["testing/test1"] = &DosPolicyEx{IsValid: true, Obj: &unstructured.Unstructured{}}
 	appProtectConfiguration.dosPolicies["testing/test2"] = &DosPolicyEx{IsValid: false, Obj: &unstructured.Unstructured{}, ErrorMsg: "Validation Failed"}
 
@@ -577,7 +577,7 @@ func TestGetLogConf(t *testing.T) {
 			msg:     "LogConf, Negative, Object Does not exist",
 		},
 	}
-	appProtectConfiguration := NewConfiguration()
+	appProtectConfiguration := NewConfiguration(true)
 	appProtectConfiguration.dosLogConfs["testing/test1"] = &DosLogConfEx{IsValid: true, Obj: &unstructured.Unstructured{}}
 	appProtectConfiguration.dosLogConfs["testing/test2"] = &DosLogConfEx{IsValid: false, Obj: &unstructured.Unstructured{}, ErrorMsg: "Validation Failed"}
 
@@ -595,7 +595,7 @@ func TestGetLogConf(t *testing.T) {
 }
 
 func TestGetDosEx(t *testing.T) {
-	dosConf := NewConfiguration()
+	dosConf := NewConfiguration(true)
 	dosLogConf := &unstructured.Unstructured{
 		Object: map[string]interface{}{
 			"metadata": map[string]interface{}{
@@ -768,21 +768,199 @@ func TestGetDosEx(t *testing.T) {
 			if test.error != "" {
 				// we expect an error, check if it matches
 				if test.error != err.Error() {
-					t.Errorf("getValidDosProtected() returned different error than expected for the case of: %v \nexpected error '%v' \nactual error '%v' \n", test.msg, test.error, err.Error())
+					t.Errorf("GetDosEx() returned different error than expected for the case of: %v \nexpected error '%v' \nactual error '%v' \n", test.msg, test.error, err.Error())
 				}
 				// all good
 			} else {
-				t.Errorf("getValidDosProtected() returned unexpected error for the case of: %v \n%v", test.msg, err)
+				t.Errorf("GetDosEx() returned unexpected error for the case of: %v \n%v", test.msg, err)
 			}
 		}
 		if diff := cmp.Diff(test.expected, dosEx); diff != "" {
-			t.Errorf("getValidDosProtected() returned unexpected result for the case of: %v (-want +got):\n%s", test.msg, diff)
+			t.Errorf("GetDosEx() returned unexpected result for the case of: %v (-want +got):\n%s", test.msg, diff)
+		}
+	}
+}
+
+
+func TestGetDosExDosDisabled(t *testing.T) {
+	dosConf := NewConfiguration(false)
+	dosLogConf := &unstructured.Unstructured{
+		Object: map[string]interface{}{
+			"metadata": map[string]interface{}{
+				"namespace": "default",
+				"name":      "dosLogConf",
+			},
+			"spec": map[string]interface{}{
+				"content": map[string]interface{}{},
+				"filter":  map[string]interface{}{},
+			},
+		},
+	}
+	dosPolicy := &unstructured.Unstructured{
+		Object: map[string]interface{}{
+			"metadata": map[string]interface{}{
+				"namespace": "default",
+				"name":      "dosPolicy",
+			},
+			"spec": map[string]interface{}{},
+		},
+	}
+	dosProtectedOnly := &v1beta1.DosProtectedResource{
+		TypeMeta: v1.TypeMeta{},
+		ObjectMeta: v1.ObjectMeta{
+			Name:      "dosOnly",
+			Namespace: "default",
+		},
+		Spec: v1beta1.DosProtectedResourceSpec{
+			Enable:           true,
+			Name:             "dos-protected",
+			ApDosMonitor:     "example.com",
+			DosAccessLogDest: "127.0.0.1:5561",
+		},
+	}
+	dosProtectedWithLogConf := &v1beta1.DosProtectedResource{
+		TypeMeta: v1.TypeMeta{},
+		ObjectMeta: v1.ObjectMeta{
+			Name:      "dosWithLogConf",
+			Namespace: "default",
+		},
+		Spec: v1beta1.DosProtectedResourceSpec{
+			Enable:           true,
+			Name:             "dos-protected",
+			ApDosMonitor:     "example.com",
+			DosAccessLogDest: "127.0.0.1:5561",
+			DosSecurityLog: &v1beta1.DosSecurityLog{
+				Enable:       true,
+				ApDosLogConf: "dosLogConf",
+				DosLogDest:   "syslog-svc.default.svc.cluster.local:514",
+			},
+		},
+	}
+	dosProtectedWithPolicy := &v1beta1.DosProtectedResource{
+		TypeMeta: v1.TypeMeta{},
+		ObjectMeta: v1.ObjectMeta{
+			Name:      "dosWithPolicy",
+			Namespace: "default",
+		},
+		Spec: v1beta1.DosProtectedResourceSpec{
+			Enable:           true,
+			Name:             "dos-protected",
+			ApDosMonitor:     "example.com",
+			DosAccessLogDest: "127.0.0.1:5561",
+			ApDosPolicy:      "dosPolicy",
+		},
+	}
+	dosProtectedWithInvalidLogConf := &v1beta1.DosProtectedResource{
+		TypeMeta: v1.TypeMeta{},
+		ObjectMeta: v1.ObjectMeta{
+			Name:      "dosWithInvalidLogConf",
+			Namespace: "default",
+		},
+		Spec: v1beta1.DosProtectedResourceSpec{
+			Enable:           true,
+			Name:             "dos-protected",
+			ApDosMonitor:     "example.com",
+			DosAccessLogDest: "127.0.0.1:5561",
+			DosSecurityLog: &v1beta1.DosSecurityLog{
+				Enable:       true,
+				ApDosLogConf: "invalid-dosLogConf",
+				DosLogDest:   "syslog-svc.default.svc.cluster.local:514",
+			},
+		},
+	}
+	dosProtectedWithInvalidPolicy := &v1beta1.DosProtectedResource{
+		TypeMeta: v1.TypeMeta{},
+		ObjectMeta: v1.ObjectMeta{
+			Name:      "dosWithInvalidPolicy",
+			Namespace: "default",
+		},
+		Spec: v1beta1.DosProtectedResourceSpec{
+			Enable:           true,
+			Name:             "dos-protected",
+			ApDosMonitor:     "example.com",
+			DosAccessLogDest: "127.0.0.1:5561",
+			ApDosPolicy:      "invalid-dosPolicy",
+		},
+	}
+	dosConf.AddOrUpdateDosProtectedResource(dosProtectedOnly)
+	dosConf.AddOrUpdateDosProtectedResource(dosProtectedWithLogConf)
+	dosConf.AddOrUpdateDosProtectedResource(dosProtectedWithPolicy)
+	dosConf.AddOrUpdateDosProtectedResource(dosProtectedWithInvalidLogConf)
+	dosConf.AddOrUpdateDosProtectedResource(dosProtectedWithInvalidPolicy)
+	dosConf.AddOrUpdateLogConf(dosLogConf)
+	dosConf.AddOrUpdatePolicy(dosPolicy)
+
+	tests := []struct {
+		namespace string
+		ref       string
+		expected  *configs.DosEx
+		msg       string
+		error     string
+	}{
+		{
+			namespace: "default",
+			ref:       "dosOnly",
+			error:     "DosProtectedResource is referenced but Dos feature is not enabled. resource: default/dosOnly",
+			msg: "fails to return a resource, using parent namespace",
+		},
+		{
+			namespace: "",
+			ref:       "default/dosOnly",
+			error:     "DosProtectedResource is referenced but Dos feature is not enabled. resource: default/dosOnly",
+			msg: "fails to return the referenced resource, using own namespace",
+		},
+		{
+			namespace: "default",
+			ref:       "dosNotExist",
+			error:     "DosProtectedResource is referenced but Dos feature is not enabled. resource: default/dosNotExist",
+			msg:       "fails to find the referenced resource",
+		},
+		{
+			namespace: "default",
+			ref:       "default/dosWithLogConf",
+			error:     "DosProtectedResource is referenced but Dos feature is not enabled. resource: default/dosWithLogConf",
+			msg: "fails to return the referenced resource, including reference to logconf",
+		},
+		{
+			namespace: "default",
+			ref:       "default/dosWithPolicy",
+			error:     "DosProtectedResource is referenced but Dos feature is not enabled. resource: default/dosWithPolicy",
+			msg: "fails to return the referenced resource, including reference to policy",
+		},
+		{
+			namespace: "default",
+			ref:       "default/dosWithInvalidLogConf",
+			error:     "DosProtectedResource is referenced but Dos feature is not enabled. resource: default/dosWithInvalidLogConf",
+			msg:       "fails to find the referenced logconf resource",
+		},
+		{
+			namespace: "default",
+			ref:       "default/dosWithInvalidPolicy",
+			error:     "DosProtectedResource is referenced but Dos feature is not enabled. resource: default/dosWithInvalidPolicy",
+			msg:       "fails to find the referenced policy resource",
+		},
+	}
+	for _, test := range tests {
+		dosEx, err := dosConf.GetDosEx(test.namespace, test.ref)
+		if err != nil {
+			if test.error != "" {
+				// we expect an error, check if it matches
+				if test.error != err.Error() {
+					t.Errorf("GetDosEx() returned different error than expected for the case of: %v \nexpected error '%v' \nactual error '%v' \n", test.msg, test.error, err.Error())
+				}
+				// all good
+			} else {
+				t.Errorf("GetDosEx() returned unexpected error for the case of: %v \n%v", test.msg, err)
+			}
+		}
+		if diff := cmp.Diff(test.expected, dosEx); diff != "" {
+			t.Errorf("GetDosEx() returned unexpected result for the case of: %v (-want +got):\n%s", test.msg, diff)
 		}
 	}
 }
 
 func TestGetDosProtectedThatReferencedDosPolicy(t *testing.T) {
-	dosConf := NewConfiguration()
+	dosConf := NewConfiguration(true)
 	dosPolicy := &unstructured.Unstructured{
 		Object: map[string]interface{}{
 			"metadata": map[string]interface{}{
@@ -920,7 +1098,7 @@ func TestGetDosProtectedThatReferencedDosPolicy(t *testing.T) {
 }
 
 func TestGetDosProtectedThatReferencedDosLogConf(t *testing.T) {
-	dosConf := NewConfiguration()
+	dosConf := NewConfiguration(true)
 	dosLogConf := &unstructured.Unstructured{
 		Object: map[string]interface{}{
 			"metadata": map[string]interface{}{

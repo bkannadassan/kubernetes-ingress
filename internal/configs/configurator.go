@@ -449,16 +449,16 @@ func (cnf *Configurator) addOrUpdateOpenTracingTracerConfig(content string) erro
 
 func (cnf *Configurator) addOrUpdateVirtualServer(virtualServerEx *VirtualServerEx) (Warnings, error) {
 	apResources := cnf.updateApResourcesForVs(virtualServerEx)
-	dosResource := map[string]*appProtectDosResource{}
+	dosResources := map[string]*appProtectDosResource{}
 	for k, v := range virtualServerEx.DosProtectedEx {
 		cnf.updateApDosResource(v)
-		dosResource[k] = getAppProtectDosResource(v)
+		dosResources[k] = getAppProtectDosResource(v)
 	}
 
 	name := getFileNameForVirtualServer(virtualServerEx.VirtualServer)
 
 	vsc := newVirtualServerConfigurator(cnf.cfgParams, cnf.isPlus, cnf.IsResolverConfigured(), cnf.staticCfgParams)
-	vsCfg, warnings := vsc.GenerateVirtualServerConfig(virtualServerEx, apResources, dosResource)
+	vsCfg, warnings := vsc.GenerateVirtualServerConfig(virtualServerEx, apResources, dosResources)
 	content, err := cnf.templateExecutorV2.ExecuteVirtualServerTemplate(&vsCfg)
 	if err != nil {
 		return warnings, fmt.Errorf("Error generating VirtualServer config: %v: %w", name, err)
@@ -1296,28 +1296,6 @@ func (cnf *Configurator) updateApResources(ingEx *IngressEx) *appProtectResource
 	return &apResources
 }
 
-func getDosProtectedStringValue(obj *unstructured.Unstructured, fields ...string) string {
-	val, has, err := unstructured.NestedString(obj.Object, fields...)
-	if err != nil {
-		glog.Warningf("Failed to get value from DosProtectedResource: %v, %v", fields, err)
-	}
-	if !has {
-		glog.Warningf("Missing value from DosProtectedResource: %v, %v", fields, err)
-	}
-	return val
-}
-
-func getDosProtectedBoolValue(obj *unstructured.Unstructured, fields ...string) bool {
-	val, has, err := unstructured.NestedBool(obj.Object, fields...)
-	if err != nil {
-		glog.Warningf("Failed to get value from DosProtectedResource: %v, %v", fields, err)
-	}
-	if !has {
-		glog.Warningf("Missing value from DosProtectedResource: %v, %v", fields, err)
-	}
-	return val
-}
-
 func (cnf *Configurator) updateApDosResource(dosEx *DosEx) {
 	if dosEx != nil {
 		if dosEx.DosPolicy != nil {
@@ -1397,7 +1375,7 @@ func (cnf *Configurator) AddOrUpdateAppProtectResource(resource *unstructured.Un
 	return warnings, nil
 }
 
-// AddOrUpdateResourcesThatUseDosProtected updates Ingresses and VirtualServers that use App Protect or App Protect DoS resources.
+// AddOrUpdateResourcesThatUseDosProtected updates Ingresses and VirtualServers that use DoS resources.
 func (cnf *Configurator) AddOrUpdateResourcesThatUseDosProtected(ingExes []*IngressEx, mergeableIngresses []*MergeableIngresses, vsExes []*VirtualServerEx) (Warnings, error) {
 	warnings, err := cnf.addOrUpdateIngressesAndVirtualServers(ingExes, mergeableIngresses, vsExes)
 	if err != nil {

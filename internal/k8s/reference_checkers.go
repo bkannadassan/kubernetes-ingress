@@ -271,15 +271,11 @@ func newDosResourceReferenceChecker(annotation string) *dosResourceReferenceChec
 }
 
 func (rc *dosResourceReferenceChecker) IsReferencedByIngress(namespace string, name string, ing *networking.Ingress) bool {
-	if resName, exists := ing.Annotations[rc.annotation]; exists {
-		resNames := strings.Split(resName, ",")
-		for _, res := range resNames {
-			if res == namespace+"/"+name || (namespace == ing.Namespace && res == name) {
-				return true
-			}
-		}
+	res, exists := ing.Annotations[rc.annotation]
+	if !exists {
+		return false
 	}
-	return false
+	return res == namespace+"/"+name || (namespace == ing.Namespace && res == name)
 }
 
 func (rc *dosResourceReferenceChecker) IsReferencedByMinion(namespace string, name string, ing *networking.Ingress) bool {

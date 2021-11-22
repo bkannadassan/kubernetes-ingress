@@ -233,6 +233,7 @@ var (
 		appProtectDosProtectedAnnotation: {
 			validateAppProtectDosOnlyAnnotation,
 			validatePlusOnlyAnnotation,
+			validateQualifiedName,
 		},
 		internalRouteAnnotation: {
 			validateInternalRoutesOnlyAnnotation,

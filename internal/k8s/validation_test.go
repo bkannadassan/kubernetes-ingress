@@ -1507,7 +1507,7 @@ func TestValidateNginxIngressAnnotations(t *testing.T) {
 		},
 		{
 			annotations: map[string]string{
-				"appprotectdos.f5.com/app-protect-dos-resource": "true",
+				"appprotectdos.f5.com/app-protect-dos-resource": "dos-resource-name",
 			},
 			specServices:          map[string]bool{},
 			isPlus:                true,
@@ -1521,7 +1521,7 @@ func TestValidateNginxIngressAnnotations(t *testing.T) {
 		},
 		{
 			annotations: map[string]string{
-				"appprotectdos.f5.com/app-protect-dos-resource": "true",
+				"appprotectdos.f5.com/app-protect-dos-resource": "dos-resource-name",
 			},
 			specServices:          map[string]bool{},
 			isPlus:                true,
@@ -1529,6 +1529,46 @@ func TestValidateNginxIngressAnnotations(t *testing.T) {
 			appProtectDosEnabled:  true,
 			internalRoutesEnabled: false,
 			expectedErrors:        nil,
+			msg:                   "valid appprotectdos.f5.com/app-protect-dos-enable annotation",
+		},
+		{
+			annotations: map[string]string{
+				"appprotectdos.f5.com/app-protect-dos-resource": "some-namespace/dos-resource-name",
+			},
+			specServices:          map[string]bool{},
+			isPlus:                true,
+			appProtectEnabled:     false,
+			appProtectDosEnabled:  true,
+			internalRoutesEnabled: false,
+			expectedErrors:        nil,
+			msg:                   "valid appprotectdos.f5.com/app-protect-dos-enable annotation",
+		},
+		{
+			annotations: map[string]string{
+				"appprotectdos.f5.com/app-protect-dos-resource": "special-chars-&%^",
+			},
+			specServices:          map[string]bool{},
+			isPlus:                true,
+			appProtectEnabled:     false,
+			appProtectDosEnabled:  true,
+			internalRoutesEnabled: false,
+			expectedErrors:        []string{
+				"annotations.appprotectdos.f5.com/app-protect-dos-resource: Invalid value: \"special-chars-&%^\": must be a qualified name",
+			},
+			msg:                   "valid appprotectdos.f5.com/app-protect-dos-enable annotation",
+		},
+		{
+			annotations: map[string]string{
+				"appprotectdos.f5.com/app-protect-dos-resource": "too/many/qualifiers",
+			},
+			specServices:          map[string]bool{},
+			isPlus:                true,
+			appProtectEnabled:     false,
+			appProtectDosEnabled:  true,
+			internalRoutesEnabled: false,
+			expectedErrors:        []string{
+				"annotations.appprotectdos.f5.com/app-protect-dos-resource: Invalid value: \"too/many/qualifiers\": must be a qualified name",
+			},
 			msg:                   "valid appprotectdos.f5.com/app-protect-dos-enable annotation",
 		},
 		{

@@ -1310,7 +1310,7 @@ func TestDosProtectedIsReferencedByIngresses(t *testing.T) {
 			},
 			resourceNamespace: "some-namespace",
 			resourceName:      "test-resource",
-			expected:          true,
+			expected:          false,
 			msg:               "resource is referenced with namespace within multiple resources",
 		},
 		{
@@ -1324,7 +1324,7 @@ func TestDosProtectedIsReferencedByIngresses(t *testing.T) {
 			},
 			resourceNamespace: "default",
 			resourceName:      "test-resource",
-			expected:          true,
+			expected:          false,
 			msg:               "resource is referenced with implicit namespace within multiple resources",
 		},
 		{
