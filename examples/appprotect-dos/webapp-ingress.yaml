@@ -3,9 +3,9 @@ kind: Ingress
 metadata:
   name: webapp-ingress
   annotations:
-    kubernetes.io/ingress.class: "nginx"
     appprotectdos.f5.com/app-protect-dos-resource: "default/dos-protected"
 spec:
+  ingressClassName: nginx
   tls:
     - hosts:
       - webapp.example.com

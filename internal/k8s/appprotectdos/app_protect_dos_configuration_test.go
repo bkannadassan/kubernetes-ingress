@@ -763,24 +763,23 @@ func TestGetDosEx(t *testing.T) {
 		},
 	}
 	for _, test := range tests {
-		dosEx, err := dosConf.GetDosEx(test.namespace, test.ref)
+		dosEx, err := dosConf.GetValidDosEx(test.namespace, test.ref)
 		if err != nil {
 			if test.error != "" {
 				// we expect an error, check if it matches
 				if test.error != err.Error() {
-					t.Errorf("GetDosEx() returned different error than expected for the case of: %v \nexpected error '%v' \nactual error '%v' \n", test.msg, test.error, err.Error())
+					t.Errorf("GetValidDosEx() returned different error than expected for the case of: %v \nexpected error '%v' \nactual error '%v' \n", test.msg, test.error, err.Error())
 				}
 				// all good
 			} else {
-				t.Errorf("GetDosEx() returned unexpected error for the case of: %v \n%v", test.msg, err)
+				t.Errorf("GetValidDosEx() returned unexpected error for the case of: %v \n%v", test.msg, err)
 			}
 		}
 		if diff := cmp.Diff(test.expected, dosEx); diff != "" {
-			t.Errorf("GetDosEx() returned unexpected result for the case of: %v (-want +got):\n%s", test.msg, diff)
+			t.Errorf("GetValidDosEx() returned unexpected result for the case of: %v (-want +got):\n%s", test.msg, diff)
 		}
 	}
 }
-
 
 func TestGetDosExDosDisabled(t *testing.T) {
 	dosConf := NewConfiguration(false)
@@ -901,13 +900,13 @@ func TestGetDosExDosDisabled(t *testing.T) {
 			namespace: "default",
 			ref:       "dosOnly",
 			error:     "DosProtectedResource is referenced but Dos feature is not enabled. resource: default/dosOnly",
-			msg: "fails to return a resource, using parent namespace",
+			msg:       "fails to return a resource, using parent namespace",
 		},
 		{
 			namespace: "",
 			ref:       "default/dosOnly",
 			error:     "DosProtectedResource is referenced but Dos feature is not enabled. resource: default/dosOnly",
-			msg: "fails to return the referenced resource, using own namespace",
+			msg:       "fails to return the referenced resource, using own namespace",
 		},
 		{
 			namespace: "default",
@@ -919,13 +918,13 @@ func TestGetDosExDosDisabled(t *testing.T) {
 			namespace: "default",
 			ref:       "default/dosWithLogConf",
 			error:     "DosProtectedResource is referenced but Dos feature is not enabled. resource: default/dosWithLogConf",
-			msg: "fails to return the referenced resource, including reference to logconf",
+			msg:       "fails to return the referenced resource, including reference to logconf",
 		},
 		{
 			namespace: "default",
 			ref:       "default/dosWithPolicy",
 			error:     "DosProtectedResource is referenced but Dos feature is not enabled. resource: default/dosWithPolicy",
-			msg: "fails to return the referenced resource, including reference to policy",
+			msg:       "fails to return the referenced resource, including reference to policy",
 		},
 		{
 			namespace: "default",
@@ -941,20 +940,20 @@ func TestGetDosExDosDisabled(t *testing.T) {
 		},
 	}
 	for _, test := range tests {
-		dosEx, err := dosConf.GetDosEx(test.namespace, test.ref)
+		dosEx, err := dosConf.GetValidDosEx(test.namespace, test.ref)
 		if err != nil {
 			if test.error != "" {
 				// we expect an error, check if it matches
 				if test.error != err.Error() {
-					t.Errorf("GetDosEx() returned different error than expected for the case of: %v \nexpected error '%v' \nactual error '%v' \n", test.msg, test.error, err.Error())
+					t.Errorf("GetValidDosEx() returned different error than expected for the case of: %v \nexpected error '%v' \nactual error '%v' \n", test.msg, test.error, err.Error())
 				}
 				// all good
 			} else {
-				t.Errorf("GetDosEx() returned unexpected error for the case of: %v \n%v", test.msg, err)
+				t.Errorf("GetValidDosEx() returned unexpected error for the case of: %v \n%v", test.msg, err)
 			}
 		}
 		if diff := cmp.Diff(test.expected, dosEx); diff != "" {
-			t.Errorf("GetDosEx() returned unexpected result for the case of: %v (-want +got):\n%s", test.msg, diff)
+			t.Errorf("GetValidDosEx() returned unexpected result for the case of: %v (-want +got):\n%s", test.msg, diff)
 		}
 	}
 }
@@ -1089,7 +1088,7 @@ func TestGetDosProtectedThatReferencedDosPolicy(t *testing.T) {
 		},
 	}
 	for _, test := range tests {
-		resources := dosConf.GetDosProtectedThatReferencedDosPolicy(test.policyNamespace, test.policyName)
+		resources := dosConf.GetDosProtectedThatReferencedDosPolicy(test.policyNamespace + "/" + test.policyName)
 
 		if diff := cmp.Diff(test.expected, resources); diff != "" {
 			t.Errorf("GetDosProtectedThatReferencedDosPolicy() returned unexpected result for the case of: %v (-want +got):\n%s", test.msg, diff)
@@ -1239,7 +1238,7 @@ func TestGetDosProtectedThatReferencedDosLogConf(t *testing.T) {
 		},
 	}
 	for _, test := range tests {
-		resources := dosConf.GetDosProtectedThatReferencedDosLogConf(test.policyNamespace, test.policyName)
+		resources := dosConf.GetDosProtectedThatReferencedDosLogConf(test.policyNamespace + "/" + test.policyName)
 		if diff := cmp.Diff(test.expected, resources); diff != "" {
 			t.Errorf("GetDosProtectedThatReferencedDosLogConf() returned unexpected result for the case of: %v (-want +got):\n%s", test.msg, diff)
 		}

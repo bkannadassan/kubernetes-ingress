@@ -80,7 +80,7 @@ type Configuration struct {
 	dosPolicies          map[string]*DosPolicyEx
 	dosLogConfs          map[string]*DosLogConfEx
 	dosProtectedResource map[string]*DosProtectedResourceEx
-	isDosEnabled bool
+	isDosEnabled         bool
 }
 
 // NewConfiguration creates a new App Protect Dos Configuration
@@ -89,7 +89,7 @@ func NewConfiguration(isDosEnabled bool) *Configuration {
 		dosPolicies:          make(map[string]*DosPolicyEx),
 		dosLogConfs:          make(map[string]*DosLogConfEx),
 		dosProtectedResource: make(map[string]*DosProtectedResourceEx),
-		isDosEnabled: isDosEnabled,
+		isDosEnabled:         isDosEnabled,
 	}
 }
 
@@ -175,23 +175,25 @@ func (ci *Configuration) AddOrUpdateDosProtectedResource(protectedConf *v1beta1.
 }
 
 func (ci *Configuration) getPolicy(key string) (*unstructured.Unstructured, error) {
-	if obj, ok := ci.dosPolicies[key]; ok {
-		if obj.IsValid {
-			return obj.Obj, nil
-		}
+	obj, ok := ci.dosPolicies[key]
+	if !ok {
+		return nil, fmt.Errorf("DosPolicy %s not found", key)
+	}
+	if !obj.IsValid {
 		return nil, fmt.Errorf(obj.ErrorMsg)
 	}
-	return nil, fmt.Errorf("DosPolicy %s not found", key)
+	return obj.Obj, nil
 }
 
 func (ci *Configuration) getLogConf(key string) (*unstructured.Unstructured, error) {
-	if obj, ok := ci.dosLogConfs[key]; ok {
-		if obj.IsValid {
-			return obj.Obj, nil
-		}
+	obj, ok := ci.dosLogConfs[key]
+	if !ok {
+		return nil, fmt.Errorf("DosLogConf %s not found", key)
+	}
+	if !obj.IsValid {
 		return nil, fmt.Errorf(obj.ErrorMsg)
 	}
-	return nil, fmt.Errorf("DosLogConf %s not found", key)
+	return obj.Obj, nil
 }
 
 func (ci *Configuration) getDosProtected(key string) (*v1beta1.DosProtectedResource, error) {
@@ -204,7 +206,8 @@ func (ci *Configuration) getDosProtected(key string) (*v1beta1.DosProtectedResou
 	return nil, fmt.Errorf("DosProtectedResource %s not found", key)
 }
 
-func (ci *Configuration) GetDosEx(parentNamespace string, nsName string) (*configs.DosEx, error) {
+// GetValidDosEx returns a valid DosProtectedResource - extended with referenced policies and logs
+func (ci *Configuration) GetValidDosEx(parentNamespace string, nsName string) (*configs.DosEx, error) {
 	var key = getNsName(parentNamespace, nsName)
 	if !ci.isDosEnabled {
 		return nil, fmt.Errorf("DosProtectedResource is referenced but Dos feature is not enabled. resource: %v", key)
@@ -252,31 +255,25 @@ func getNsName(defaultNamespace string, name string) string {
 	return name
 }
 
-func (ci *Configuration) GetDosProtectedThatReferencedDosPolicy(namespace string, name string) []*v1beta1.DosProtectedResource {
+func (ci *Configuration) GetDosProtectedThatReferencedDosPolicy(key string) []*v1beta1.DosProtectedResource {
 	var protectedResources []*v1beta1.DosProtectedResource
 	for _, protectedEx := range ci.dosProtectedResource {
-		if !protectedEx.IsValid {
-			continue
-		}
 		protected := protectedEx.Obj
-		dosPol := protected.Spec.ApDosPolicy
-		if dosPol == (namespace+"/"+name) || (dosPol == name && namespace == protected.Namespace) {
+		dosPolRef := protected.Spec.ApDosPolicy
+		if key == dosPolRef || key == protected.Namespace+"/"+dosPolRef {
 			protectedResources = append(protectedResources, protected)
 		}
 	}
 	return protectedResources
 }
 
-func (ci *Configuration) GetDosProtectedThatReferencedDosLogConf(namespace string, name string) []*v1beta1.DosProtectedResource {
+func (ci *Configuration) GetDosProtectedThatReferencedDosLogConf(key string) []*v1beta1.DosProtectedResource {
 	var protectedResources []*v1beta1.DosProtectedResource
 	for _, protectedEx := range ci.dosProtectedResource {
-		if !protectedEx.IsValid {
-			continue
-		}
 		protected := protectedEx.Obj
 		if protected.Spec.DosSecurityLog != nil {
 			dosLogConf := protected.Spec.DosSecurityLog.ApDosLogConf
-			if dosLogConf == (namespace+"/"+name) || (dosLogConf == name && namespace == protected.Namespace) {
+			if key == dosLogConf || key == protected.Namespace+"/"+dosLogConf {
 				protectedResources = append(protectedResources, protected)
 			}
 		}
@@ -286,12 +283,13 @@ func (ci *Configuration) GetDosProtectedThatReferencedDosLogConf(namespace strin
 
 // DeletePolicy deletes an App Protect Policy from App Protect Dos Configuration
 func (ci *Configuration) DeletePolicy(key string) (changes []Change, problems []Problem) {
-	if _, has := ci.dosPolicies[key]; has {
-		change := Change{Op: Delete, Resource: ci.dosPolicies[key]}
-		delete(ci.dosPolicies, key)
-		return append(changes, change), problems
+	_, has := ci.dosPolicies[key]
+	if !has {
+		return nil, nil
 	}
-	return changes, problems
+	change := Change{Op: Delete, Resource: ci.dosPolicies[key]}
+	delete(ci.dosPolicies, key)
+	return append(changes, change), problems
 }
 
 // DeleteLogConf deletes an App Protect Dos LogConf from App Protect Dos Configuration

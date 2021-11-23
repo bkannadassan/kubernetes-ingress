@@ -279,7 +279,7 @@ func (vsc *virtualServerConfigurator) generateEndpointsForUpstream(
 func (vsc *virtualServerConfigurator) GenerateVirtualServerConfig(
 	vsEx *VirtualServerEx,
 	apResources *appProtectResourcesForVS,
-	dosResource map[string]*appProtectDosResource,
+	dosResources map[string]*appProtectDosResource,
 ) (version2.VirtualServerConfig, Warnings) {
 	vsc.clearWarnings()
 
@@ -299,7 +299,7 @@ func (vsc *virtualServerConfigurator) GenerateVirtualServerConfig(
 		vsName:         vsEx.VirtualServer.Name,
 	}
 	policiesCfg := vsc.generatePolicies(ownerDetails, vsEx.VirtualServer.Spec.Policies, vsEx.Policies, specContext, policyOpts)
-	dosCfg := generateDosCfg(dosResource[""])
+	dosCfg := generateDosCfg(dosResources[""])
 
 	// crUpstreams maps an UpstreamName to its conf_v1.Upstream as they are generated
 	// necessary for generateLocation to know what Upstream each Location references
@@ -423,7 +423,7 @@ func (vsc *virtualServerConfigurator) GenerateVirtualServerConfig(
 		}
 		limitReqZones = append(limitReqZones, routePoliciesCfg.LimitReqZones...)
 
-		dosRouteCfg := generateDosCfg(dosResource[r.Path])
+		dosRouteCfg := generateDosCfg(dosResources[r.Path])
 
 		if len(r.Matches) > 0 {
 			cfg := generateMatchesConfig(

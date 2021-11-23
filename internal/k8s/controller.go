@@ -740,7 +740,7 @@ func (lbc *LoadBalancerController) preSyncSecrets() {
 		secret := obj.(*api_v1.Secret)
 
 		if !secrets.IsSupportedSecretType(secret.Type) {
-			//glog.V(3).Infof("Ignoring Secret %s/%s of unsupported type %s", secret.Namespace, secret.Name, secret.Type)
+			//glog.V(4).Infof("Ignoring Secret %s/%s of unsupported type %s", secret.Namespace, secret.Name, secret.Type)
 			continue
 		}
 
@@ -1299,44 +1299,36 @@ func (lbc *LoadBalancerController) processAppProtectDosChanges(changes []appprot
 
 	for _, c := range changes {
 		if c.Op == appprotectdos.AddOrUpdate {
-			var protectedResources []*v1beta1.DosProtectedResource
+
 			switch impl := c.Resource.(type) {
 			case *appprotectdos.DosPolicyEx:
-				protectedResources = lbc.dosConfiguration.GetDosProtectedThatReferencedDosPolicy(impl.Obj.GetNamespace(), impl.Obj.GetName())
+				// ignore
 
 			case *appprotectdos.DosLogConfEx:
-				protectedResources = lbc.dosConfiguration.GetDosProtectedThatReferencedDosLogConf(impl.Obj.GetNamespace(), impl.Obj.GetName())
+				// ignore
 
 			case *appprotectdos.DosProtectedResourceEx:
-				protectedResources = []*v1beta1.DosProtectedResource{impl.Obj}
-			}
-			var resources = lbc.getResourcesThatUseDosProtected(protectedResources)
-			resourceExes := lbc.createExtendedResources(resources)
-			warnings, err := lbc.configurator.AddOrUpdateResourcesThatUseDosProtected(resourceExes.IngressExes, resourceExes.MergeableIngresses, resourceExes.VirtualServerExes)
-			lbc.updateResourcesStatusAndEvents(resources, warnings, err)
-
-		} else if c.Op == appprotectdos.Delete {
-			var protectedResources []*v1beta1.DosProtectedResource
-			switch impl := c.Resource.(type) {
-			case *appprotectdos.DosPolicyEx:
-				protectedResources = lbc.dosConfiguration.GetDosProtectedThatReferencedDosPolicy(impl.Obj.GetNamespace(), impl.Obj.GetName())
-				var resources = lbc.getResourcesThatUseDosProtected(protectedResources)
+				glog.V(3).Infof("handling change UPDATE OR ADD for DOS protected %s/%s", impl.Obj.Namespace, impl.Obj.Name)
+				resources := lbc.configuration.FindResourcesForAppProtectDosProtected(impl.Obj.Namespace, impl.Obj.Name)
 				resourceExes := lbc.createExtendedResources(resources)
 				warnings, err := lbc.configurator.AddOrUpdateResourcesThatUseDosProtected(resourceExes.IngressExes, resourceExes.MergeableIngresses, resourceExes.VirtualServerExes)
 				lbc.updateResourcesStatusAndEvents(resources, warnings, err)
+
+				msg := fmt.Sprintf("Configuration for %s/%s was added or updated", impl.Obj.Namespace, impl.Obj.Name)
+				lbc.recorder.Event(impl.Obj, api_v1.EventTypeNormal, "AddedOrUpdated", msg)
+			}
+
+		} else if c.Op == appprotectdos.Delete {
+			switch impl := c.Resource.(type) {
+			case *appprotectdos.DosPolicyEx:
 				lbc.configurator.DeleteAppProtectDosPolicy(impl.Obj)
 
 			case *appprotectdos.DosLogConfEx:
-				protectedResources = lbc.dosConfiguration.GetDosProtectedThatReferencedDosLogConf(impl.Obj.GetNamespace(), impl.Obj.GetName())
-				var resources = lbc.getResourcesThatUseDosProtected(protectedResources)
-				resourceExes := lbc.createExtendedResources(resources)
-				warnings, err := lbc.configurator.AddOrUpdateResourcesThatUseDosProtected(resourceExes.IngressExes, resourceExes.MergeableIngresses, resourceExes.VirtualServerExes)
-				lbc.updateResourcesStatusAndEvents(resources, warnings, err)
 				lbc.configurator.DeleteAppProtectDosLogConf(impl.Obj)
 
 			case *appprotectdos.DosProtectedResourceEx:
-				protectedResources = []*v1beta1.DosProtectedResource{impl.Obj}
-				var resources = lbc.getResourcesThatUseDosProtected(protectedResources)
+				glog.V(3).Infof("handling change DELETE for DOS protected %s/%s", impl.Obj.Namespace, impl.Obj.Name)
+				resources := lbc.configuration.FindResourcesForAppProtectDosProtected(impl.Obj.Namespace, impl.Obj.Name)
 				resourceExes := lbc.createExtendedResources(resources)
 				warnings, err := lbc.configurator.AddOrUpdateResourcesThatUseDosProtected(resourceExes.IngressExes, resourceExes.MergeableIngresses, resourceExes.VirtualServerExes)
 				lbc.updateResourcesStatusAndEvents(resources, warnings, err)
@@ -1344,14 +1336,6 @@ func (lbc *LoadBalancerController) processAppProtectDosChanges(changes []appprot
 
 		}
 	}
-}
-
-func (lbc *LoadBalancerController) getResourcesThatUseDosProtected(protected []*v1beta1.DosProtectedResource) []Resource {
-	var resources []Resource
-	for _, pro := range protected {
-		resources = append(resources, lbc.configuration.FindResourcesForAppProtectDosProtected(pro.Namespace, pro.Name)...)
-	}
-	return resources
 }
 
 func (lbc *LoadBalancerController) processAppProtectDosProblems(problems []appprotectdos.Problem) {
@@ -2226,7 +2210,7 @@ func (lbc *LoadBalancerController) createIngressEx(ing *networking.Ingress, vali
 
 		if lbc.appProtectDosEnabled {
 			if dosProtectedAnnotationValue, exists := ingEx.Ingress.Annotations[configs.AppProtectDosProtectedAnnotation]; exists {
-				dosResEx, err := lbc.dosConfiguration.GetDosEx(ing.Namespace, dosProtectedAnnotationValue)
+				dosResEx, err := lbc.dosConfiguration.GetValidDosEx(ing.Namespace, dosProtectedAnnotationValue)
 				if err != nil {
 					glog.Warningf("Error Getting Dos Protected Resource %v for Ingress %v/%v: %v", dosProtectedAnnotationValue, ing.Namespace, ing.Name, err)
 				}
@@ -2433,7 +2417,7 @@ func (lbc *LoadBalancerController) createVirtualServerEx(virtualServer *conf_v1.
 	}
 
 	if virtualServer.Spec.Dos != "" {
-		dosEx, err := lbc.dosConfiguration.GetDosEx(virtualServer.Namespace, virtualServer.Spec.Dos)
+		dosEx, err := lbc.dosConfiguration.GetValidDosEx(virtualServer.Namespace, virtualServer.Spec.Dos)
 		if err != nil {
 			glog.Warningf("Error getting App Protect Dos resource for VirtualServer %v/%v: %v", virtualServer.Namespace, virtualServer.Name, err)
 		}
@@ -2515,7 +2499,7 @@ func (lbc *LoadBalancerController) createVirtualServerEx(virtualServer *conf_v1.
 		}
 
 		if r.Dos != "" {
-			routeDosEx, err := lbc.dosConfiguration.GetDosEx(virtualServer.Namespace, r.Dos)
+			routeDosEx, err := lbc.dosConfiguration.GetValidDosEx(virtualServer.Namespace, r.Dos)
 			if err != nil {
 				glog.Warningf("Error getting App Protect Dos resource for VirtualServer %v/%v: %v", virtualServer.Namespace, virtualServer.Name, err)
 			}
@@ -3368,6 +3352,13 @@ func (lbc *LoadBalancerController) syncAppProtectDosPolicy(task task) {
 		glog.V(2).Infof("Adding or Updating APDosPolicy: %v\n", key)
 		changes, problems = lbc.dosConfiguration.AddOrUpdatePolicy(obj.(*unstructured.Unstructured))
 	}
+	protectedResources := lbc.dosConfiguration.GetDosProtectedThatReferencedDosPolicy(key)
+	for _, p := range protectedResources {
+		glog.V(3).Infof("adding changes/problems for dos protected resource: %s/%s", p.Namespace, p.Name)
+		proChanges, proProblems := lbc.dosConfiguration.AddOrUpdateDosProtectedResource(p)
+		changes = append(changes, proChanges...)
+		problems = append(problems, proProblems...)
+	}
 
 	lbc.processAppProtectDosChanges(changes)
 	lbc.processAppProtectDosProblems(problems)
@@ -3391,6 +3382,13 @@ func (lbc *LoadBalancerController) syncAppProtectDosLogConf(task task) {
 	} else {
 		glog.V(2).Infof("Adding or Updating APDosLogConf: %v\n", key)
 		changes, problems = lbc.dosConfiguration.AddOrUpdateLogConf(obj.(*unstructured.Unstructured))
+	}
+	protectedResources := lbc.dosConfiguration.GetDosProtectedThatReferencedDosLogConf(key)
+	for _, p := range protectedResources {
+		glog.V(3).Infof("adding changes/problems for dos protected resource: %s/%s", p.Namespace, p.Name)
+		proChanges, proProblems := lbc.dosConfiguration.AddOrUpdateDosProtectedResource(p)
+		changes = append(changes, proChanges...)
+		problems = append(problems, proProblems...)
 	}
 
 	lbc.processAppProtectDosChanges(changes)

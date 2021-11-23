@@ -70,9 +70,14 @@ func TestUpdateApDosResource(t *testing.T) {
 		msg            string
 	}{
 		{
+			dosProtectedEx: nil,
+			expected:       nil,
+			msg:            "nil app protect dos resources",
+		},
+		{
 			dosProtectedEx: &DosEx{},
-			expected:       &appProtectDosResource{},
-			msg:            "no app protect dos resources",
+			expected:       nil,
+			msg:            "empty app protect dos resources",
 		},
 		{
 			dosProtectedEx: &DosEx{
@@ -80,7 +85,7 @@ func TestUpdateApDosResource(t *testing.T) {
 			},
 			expected: &appProtectDosResource{
 				AppProtectDosEnable:       "on",
-				AppProtectDosName:         "test-ns/dos-protected",
+				AppProtectDosName:         "test-ns/dosOnly/dos-protected",
 				AppProtectDosMonitor:      "example.com",
 				AppProtectDosAccessLogDst: "127.0.0.1:5561",
 			},
@@ -93,7 +98,7 @@ func TestUpdateApDosResource(t *testing.T) {
 			},
 			expected: &appProtectDosResource{
 				AppProtectDosEnable:       "on",
-				AppProtectDosName:         "test-ns/dos-protected",
+				AppProtectDosName:         "test-ns/dosOnly/dos-protected",
 				AppProtectDosMonitor:      "example.com",
 				AppProtectDosAccessLogDst: "127.0.0.1:5561",
 				AppProtectDosPolicyFile:   "/etc/nginx/dos/policies/test-ns_test-name.json",
@@ -108,7 +113,7 @@ func TestUpdateApDosResource(t *testing.T) {
 			},
 			expected: &appProtectDosResource{
 				AppProtectDosEnable:       "on",
-				AppProtectDosName:         "test-ns/dos-protected",
+				AppProtectDosName:         "test-ns/dosWithLogConf/dos-protected",
 				AppProtectDosMonitor:      "example.com",
 				AppProtectDosAccessLogDst: "127.0.0.1:5561",
 				AppProtectDosPolicyFile:   "/etc/nginx/dos/policies/test-ns_test-name.json",

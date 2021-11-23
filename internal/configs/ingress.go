@@ -164,7 +164,7 @@ func generateNginxCfg(ingEx *IngressEx, apResources *appProtectResources, dosRes
 			server.AppProtectLogConfs = apResources.AppProtectLogconfs
 		}
 
-		if hasAppProtectDos {
+		if hasAppProtectDos && dosResource != nil {
 			server.AppProtectDosEnable = dosResource.AppProtectDosEnable
 			server.AppProtectDosLogEnable = dosResource.AppProtectDosLogEnable
 			server.AppProtectDosMonitor = dosResource.AppProtectDosMonitor

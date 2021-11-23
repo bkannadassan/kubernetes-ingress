@@ -14,7 +14,7 @@ type appProtectDosResource struct {
 func getAppProtectDosResource(dosEx *DosEx) *appProtectDosResource {
 	var dosResource appProtectDosResource
 	if dosEx == nil || dosEx.DosProtected == nil {
-		return &dosResource
+		return nil
 	}
 
 	protected := dosEx.DosProtected

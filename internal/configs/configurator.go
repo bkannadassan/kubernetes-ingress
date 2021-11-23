@@ -268,7 +268,7 @@ func (cnf *Configurator) AddOrUpdateIngress(ingEx *IngressEx) (Warnings, error) 
 func (cnf *Configurator) addOrUpdateIngress(ingEx *IngressEx) (Warnings, error) {
 	apResources := cnf.updateApResources(ingEx)
 
-	cnf.updateApDosResource(ingEx.DosEx) // todo move this
+	cnf.updateDosResource(ingEx.DosEx)
 	dosResource := getAppProtectDosResource(ingEx.DosEx)
 
 	if jwtKey, exists := ingEx.Ingress.Annotations[JWTKeyAnnotation]; exists {
@@ -311,7 +311,7 @@ func (cnf *Configurator) AddOrUpdateMergeableIngress(mergeableIngs *MergeableIng
 
 func (cnf *Configurator) addOrUpdateMergeableIngress(mergeableIngs *MergeableIngresses) (Warnings, error) {
 	apResources := cnf.updateApResources(mergeableIngs.Master)
-	cnf.updateApDosResource(mergeableIngs.Master.DosEx)
+	cnf.updateDosResource(mergeableIngs.Master.DosEx)
 	dosResource := getAppProtectDosResource(mergeableIngs.Master.DosEx)
 
 	// LocalSecretStore will not set Path if the secret is not on the filesystem.
@@ -451,8 +451,11 @@ func (cnf *Configurator) addOrUpdateVirtualServer(virtualServerEx *VirtualServer
 	apResources := cnf.updateApResourcesForVs(virtualServerEx)
 	dosResources := map[string]*appProtectDosResource{}
 	for k, v := range virtualServerEx.DosProtectedEx {
-		cnf.updateApDosResource(v)
-		dosResources[k] = getAppProtectDosResource(v)
+		cnf.updateDosResource(v)
+		dosRes := getAppProtectDosResource(v)
+		if dosRes != nil {
+			dosResources[k] = dosRes
+		}
 	}
 
 	name := getFileNameForVirtualServer(virtualServerEx.VirtualServer)
@@ -1296,7 +1299,7 @@ func (cnf *Configurator) updateApResources(ingEx *IngressEx) *appProtectResource
 	return &apResources
 }
 
-func (cnf *Configurator) updateApDosResource(dosEx *DosEx) {
+func (cnf *Configurator) updateDosResource(dosEx *DosEx) {
 	if dosEx != nil {
 		if dosEx.DosPolicy != nil {
 			policyFileName := appProtectDosPolicyFileName(dosEx.DosPolicy.GetNamespace(), dosEx.DosPolicy.GetName())
