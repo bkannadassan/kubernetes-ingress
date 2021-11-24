@@ -115,27 +115,43 @@ type DosLogConfEx struct {
 }
 
 // AddOrUpdatePolicy adds or updates an App Protect Dos Policy to App Protect Dos Configuration
-func (ci *Configuration) AddOrUpdatePolicy(policyObj *unstructured.Unstructured) ([]Change, []Problem) {
+func (ci *Configuration) AddOrUpdatePolicy(policyObj *unstructured.Unstructured) (changes []Change, problems []Problem) {
 	resNsName := appprotect_common.GetNsName(policyObj)
 	policy, err := createAppProtectDosPolicyEx(policyObj)
 	ci.dosPolicies[resNsName] = policy
 	if err != nil {
-		return []Change{{Op: Delete, Resource: policy}},
-			[]Problem{{Object: policyObj, Reason: "Rejected", Message: err.Error()}}
+		changes = append(changes, Change{Op: Delete, Resource: policy})
+		problems = append(problems, Problem{Object: policyObj, Reason: "Rejected", Message: err.Error()})
 	}
-	return []Change{{Op: AddOrUpdate, Resource: policy}}, nil
+
+	protectedResources := ci.GetDosProtectedThatReferencedDosPolicy(resNsName)
+	for _, p := range protectedResources {
+		proChanges, proProblems := ci.AddOrUpdateDosProtectedResource(p)
+		changes = append(changes, proChanges...)
+		problems = append(problems, proProblems...)
+	}
+
+	return changes, problems
 }
 
 // AddOrUpdateLogConf adds or updates App Protect Dos Log Configuration to App Protect Dos Configuration
-func (ci *Configuration) AddOrUpdateLogConf(logConfObj *unstructured.Unstructured) ([]Change, []Problem) {
+func (ci *Configuration) AddOrUpdateLogConf(logConfObj *unstructured.Unstructured) (changes []Change, problems []Problem) {
 	resNsName := appprotect_common.GetNsName(logConfObj)
 	logConf, err := createAppProtectDosLogConfEx(logConfObj)
 	ci.dosLogConfs[resNsName] = logConf
 	if err != nil {
-		return []Change{{Op: Delete, Resource: logConf}},
-			[]Problem{{Object: logConfObj, Reason: "Rejected", Message: err.Error()}}
+		changes = append(changes, Change{Op: Delete, Resource: logConf})
+		problems = append(problems, Problem{Object: logConfObj, Reason: "Rejected", Message: err.Error()})
 	}
-	return []Change{{Op: AddOrUpdate, Resource: logConf}}, nil
+
+	protectedResources := ci.GetDosProtectedThatReferencedDosLogConf(resNsName)
+	for _, p := range protectedResources {
+		proChanges, proProblems := ci.AddOrUpdateDosProtectedResource(p)
+		changes = append(changes, proChanges...)
+		problems = append(problems, proProblems...)
+	}
+
+	return changes, problems
 }
 
 // AddOrUpdateDosProtectedResource adds or updates App Protect Dos ProtectedResource Configuration
@@ -284,21 +300,36 @@ func (ci *Configuration) GetDosProtectedThatReferencedDosLogConf(key string) []*
 // DeletePolicy deletes an App Protect Policy from App Protect Dos Configuration
 func (ci *Configuration) DeletePolicy(key string) (changes []Change, problems []Problem) {
 	_, has := ci.dosPolicies[key]
-	if !has {
-		return nil, nil
+	if has {
+		changes = append(changes, Change{Op: Delete, Resource: ci.dosPolicies[key]})
+		delete(ci.dosPolicies, key)
 	}
-	change := Change{Op: Delete, Resource: ci.dosPolicies[key]}
-	delete(ci.dosPolicies, key)
-	return append(changes, change), problems
+
+	protectedResources := ci.GetDosProtectedThatReferencedDosPolicy(key)
+	for _, p := range protectedResources {
+		proChanges, proProblems := ci.AddOrUpdateDosProtectedResource(p)
+		changes = append(changes, proChanges...)
+		problems = append(problems, proProblems...)
+	}
+
+	return changes, problems
 }
 
 // DeleteLogConf deletes an App Protect Dos LogConf from App Protect Dos Configuration
 func (ci *Configuration) DeleteLogConf(key string) (changes []Change, problems []Problem) {
-	if _, has := ci.dosLogConfs[key]; has {
-		change := Change{Op: Delete, Resource: ci.dosLogConfs[key]}
+	_, has := ci.dosLogConfs[key]
+	if has {
+		changes = append(changes, Change{Op: Delete, Resource: ci.dosLogConfs[key]})
 		delete(ci.dosLogConfs, key)
-		return append(changes, change), problems
 	}
+
+	protectedResources := ci.GetDosProtectedThatReferencedDosLogConf(key)
+	for _, p := range protectedResources {
+		proChanges, proProblems := ci.AddOrUpdateDosProtectedResource(p)
+		changes = append(changes, proChanges...)
+		problems = append(problems, proProblems...)
+	}
+
 	return changes, problems
 }
 

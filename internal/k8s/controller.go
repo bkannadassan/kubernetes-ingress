@@ -740,7 +740,7 @@ func (lbc *LoadBalancerController) preSyncSecrets() {
 		secret := obj.(*api_v1.Secret)
 
 		if !secrets.IsSupportedSecretType(secret.Type) {
-			//glog.V(4).Infof("Ignoring Secret %s/%s of unsupported type %s", secret.Namespace, secret.Name, secret.Type)
+			glog.V(3).Infof("Ignoring Secret %s/%s of unsupported type %s", secret.Namespace, secret.Name, secret.Type)
 			continue
 		}
 
@@ -1299,25 +1299,16 @@ func (lbc *LoadBalancerController) processAppProtectDosChanges(changes []appprot
 
 	for _, c := range changes {
 		if c.Op == appprotectdos.AddOrUpdate {
-
 			switch impl := c.Resource.(type) {
-			case *appprotectdos.DosPolicyEx:
-				// ignore
-
-			case *appprotectdos.DosLogConfEx:
-				// ignore
-
 			case *appprotectdos.DosProtectedResourceEx:
 				glog.V(3).Infof("handling change UPDATE OR ADD for DOS protected %s/%s", impl.Obj.Namespace, impl.Obj.Name)
 				resources := lbc.configuration.FindResourcesForAppProtectDosProtected(impl.Obj.Namespace, impl.Obj.Name)
 				resourceExes := lbc.createExtendedResources(resources)
 				warnings, err := lbc.configurator.AddOrUpdateResourcesThatUseDosProtected(resourceExes.IngressExes, resourceExes.MergeableIngresses, resourceExes.VirtualServerExes)
 				lbc.updateResourcesStatusAndEvents(resources, warnings, err)
-
 				msg := fmt.Sprintf("Configuration for %s/%s was added or updated", impl.Obj.Namespace, impl.Obj.Name)
 				lbc.recorder.Event(impl.Obj, api_v1.EventTypeNormal, "AddedOrUpdated", msg)
 			}
-
 		} else if c.Op == appprotectdos.Delete {
 			switch impl := c.Resource.(type) {
 			case *appprotectdos.DosPolicyEx:
@@ -3352,13 +3343,6 @@ func (lbc *LoadBalancerController) syncAppProtectDosPolicy(task task) {
 		glog.V(2).Infof("Adding or Updating APDosPolicy: %v\n", key)
 		changes, problems = lbc.dosConfiguration.AddOrUpdatePolicy(obj.(*unstructured.Unstructured))
 	}
-	protectedResources := lbc.dosConfiguration.GetDosProtectedThatReferencedDosPolicy(key)
-	for _, p := range protectedResources {
-		glog.V(3).Infof("adding changes/problems for dos protected resource: %s/%s", p.Namespace, p.Name)
-		proChanges, proProblems := lbc.dosConfiguration.AddOrUpdateDosProtectedResource(p)
-		changes = append(changes, proChanges...)
-		problems = append(problems, proProblems...)
-	}
 
 	lbc.processAppProtectDosChanges(changes)
 	lbc.processAppProtectDosProblems(problems)
@@ -3382,13 +3366,6 @@ func (lbc *LoadBalancerController) syncAppProtectDosLogConf(task task) {
 	} else {
 		glog.V(2).Infof("Adding or Updating APDosLogConf: %v\n", key)
 		changes, problems = lbc.dosConfiguration.AddOrUpdateLogConf(obj.(*unstructured.Unstructured))
-	}
-	protectedResources := lbc.dosConfiguration.GetDosProtectedThatReferencedDosLogConf(key)
-	for _, p := range protectedResources {
-		glog.V(3).Infof("adding changes/problems for dos protected resource: %s/%s", p.Namespace, p.Name)
-		proChanges, proProblems := lbc.dosConfiguration.AddOrUpdateDosProtectedResource(p)
-		changes = append(changes, proChanges...)
-		problems = append(problems, proProblems...)
 	}
 
 	lbc.processAppProtectDosChanges(changes)
