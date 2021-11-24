@@ -1,16 +1,17 @@
 import grpc
 import pytest
-from kubernetes.client.rest import ApiException
+import time
 
 from settings import TEST_DATA, DEPLOYMENTS
 from suite.custom_assertions import assert_event_starts_with_text_and_contains_errors, \
-    assert_grpc_entries_exist, assert_proxy_entries_do_not_exist, assert_vs_conf_not_exists
+    assert_grpc_entries_exist, assert_proxy_entries_do_not_exist, \
+    assert_vs_conf_not_exists, assert_event_and_count
 from suite.custom_resources_utils import read_custom_resource
 from suite.grpc.helloworld_pb2 import HelloRequest
 from suite.grpc.helloworld_pb2_grpc import GreeterStub
 from suite.resources_utils import create_example_app, wait_until_all_pods_are_ready, \
     delete_common_app, create_secret_from_yaml, replace_configmap_from_yaml, \
-    delete_items_from_yaml, get_first_pod_name, get_events
+    delete_items_from_yaml, get_first_pod_name, get_events, scale_deployment
 from suite.ssl_utils import get_certificate
 from suite.vs_vsr_resources_utils import get_vs_nginx_template_conf, \
     patch_virtual_server_from_yaml
@@ -63,6 +64,7 @@ def backend_setup(request, kube_apis, ingress_controller_prerequisites, test_nam
     request.addfinalizer(fin)
 
 @pytest.mark.vs
+@pytest.mark.ciara
 @pytest.mark.smoke
 @pytest.mark.parametrize('crd_ingress_controller, virtual_server_setup',
                          [({"type": "complete", "extra_args": [f"-enable-custom-resources"]},
@@ -150,6 +152,51 @@ class TestVirtualServerGrpc:
                                             ic_pod_name,
                                             ingress_controller_prerequisites.namespace)
         assert 'grpc_pass grpcs://' in config
+
+    @pytest.mark.parametrize("backend_setup", [{"app_type": "grpc-vs"}], indirect=True)
+    def test_config_error_page_warning(self, kube_apis, ingress_controller_prerequisites, crd_ingress_controller, 
+                                       backend_setup, virtual_server_setup):
+        text = f"{virtual_server_setup.namespace}/{virtual_server_setup.vs_name}"
+        vs_event_warning_text = f"Configuration for {text} was added or updated ; with warning(s):"
+        patch_virtual_server_from_yaml(kube_apis.custom_objects,
+                                        virtual_server_setup.vs_name,
+                                        f"{TEST_DATA}/virtual-server-grpc/virtual-server-error-page.yaml",
+                                        virtual_server_setup.namespace)
+        wait_before_test()
+
+        events = get_events(kube_apis.v1, virtual_server_setup.namespace)
+        assert_event_and_count(vs_event_warning_text, 1, events)
+
+        cert = get_certificate(virtual_server_setup.public_endpoint.public_ip,
+                               virtual_server_setup.vs_host,
+                               virtual_server_setup.public_endpoint.port_ssl)
+        target = f'{virtual_server_setup.public_endpoint.public_ip}:{virtual_server_setup.public_endpoint.port_ssl}'
+        credentials = grpc.ssl_channel_credentials(root_certificates=cert.encode())
+        options = (('grpc.ssl_target_name_override', virtual_server_setup.vs_host),)
+
+        with grpc.secure_channel(target, credentials, options) as channel:
+            stub = GreeterStub(channel)
+            response = ""
+            try:
+                response = stub.SayHello(HelloRequest(name=virtual_server_setup.public_endpoint.public_ip))
+                valid_message = "Hello {}".format(virtual_server_setup.public_endpoint.public_ip)
+                assert valid_message in response.message
+            except grpc.RpcError as e:
+                print(e.details())
+                pytest.fail("RPC error was not expected during call, exiting...")
+
+        scale_deployment(kube_apis.v1, kube_apis.apps_v1_api, "grpc1", virtual_server_setup.namespace, 0)
+        scale_deployment(kube_apis.v1, kube_apis.apps_v1_api, "grpc2", virtual_server_setup.namespace, 0)
+        time.sleep(1)
+
+        with grpc.secure_channel(target, credentials, options) as channel:
+            stub = GreeterStub(channel)
+            try:
+                response = stub.SayHello(HelloRequest(name=virtual_server_setup.public_endpoint.public_ip))
+                assert response.status == 14
+                pytest.fail("RPC error was expected during call, exiting...")
+            except grpc.RpcError as e:
+                print(e)
 
 @pytest.mark.vs
 @pytest.mark.smoke
